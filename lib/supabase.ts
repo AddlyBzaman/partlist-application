@@ -111,22 +111,20 @@ export const bahanService = {
   },
 };
 
-// ✅ BARU: CRUD Operations untuk Bahan Input Sementara
+
 export const bahanSementaraService = {
   async create(
     data: BahanInputSementara,
     username?: string,
     sessionId?: string
   ) {
-    // Remove id and auto-generated fields
+    
     const { id, created_at, updated_at, ...insertData } = data;
 
     if (username) {
       insertData.created_by = username;
     }
-    if (sessionId) {
-      insertData.session_id = sessionId;
-    }
+    insertData.session_id = sessionId || insertData.session_id || "global";
 
     const { data: result, error } = await supabase
       .from("bahan_input_sementara")
@@ -148,6 +146,16 @@ export const bahanSementaraService = {
     return data;
   },
 
+  async getAll() {
+    const { data, error } = await supabase
+      .from("bahan_input_sementara")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
   async deleteById(id: number) {
     const { error } = await supabase
       .from("bahan_input_sementara")
@@ -163,6 +171,26 @@ export const bahanSementaraService = {
       .from("bahan_input_sementara")
       .delete()
       .eq("session_id", sessionId);
+
+    if (error) throw error;
+    return true;
+  },
+
+  async deleteAll() {
+    const { error } = await supabase
+      .from("bahan_input_sementara")
+      .delete()
+      .not("id", "is", null);
+
+    if (error) throw error;
+    return true;
+  },
+
+  async reassignSession(oldSessionId: string, newSessionId: string) {
+    const { error } = await supabase
+      .from("bahan_input_sementara")
+      .update({ session_id: newSessionId })
+      .eq("session_id", oldSessionId);
 
     if (error) throw error;
     return true;

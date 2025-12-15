@@ -5,14 +5,14 @@ export async function checkLogin(username: string, password: string) {
     .from("users")
     .select("*")
     .eq("username", username)
-    .eq("password", password) // nanti pakai hash
+    .eq("password", password) 
     .single();
 
   if (error || !data) {
     return null;
   }
 
-  // simpan session ke sessionStorage
+ 
   if (typeof window !== "undefined") {
     sessionStorage.setItem("isLoggedIn", "true");
     sessionStorage.setItem("username", data.username);

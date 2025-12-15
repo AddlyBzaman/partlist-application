@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { bahanService, bahanSementaraService, Bahan } from "@/lib/supabase";
+import { bahanService, bahanSementaraService, Bahan, supabase } from "@/lib/supabase";
+import { getSession } from "@/lib/auth";
 import {
   Save,
   RotateCcw,
@@ -15,7 +16,7 @@ import SearchModal from "@/components/modals/SearchModal";
 import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal";
 
 export default function BahanPage() {
-  const [sessionId, setSessionId] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [formData, setFormData] = useState({
     code_lama: "",
     nama_bahan: "",
@@ -51,45 +52,55 @@ export default function BahanPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    // Get or generate session ID from localStorage
-    const storedSessionId = localStorage.getItem("bahanSessionId");
-    const newSessionId =
-      storedSessionId ||
-      `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sess = getSession();
+    setUsername((sess as any)?.username || "");
+    loadData();
 
-    if (!storedSessionId) {
-      localStorage.setItem("bahanSessionId", newSessionId);
-    }
+    const channel = supabase
+      .channel("bahan_input_sementara_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bahan_input_sementara" },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
 
-    setSessionId(newSessionId);
-    loadData(newSessionId);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const loadData = async (sessionIdParam?: string) => {
+  const loadData = async () => {
     try {
-      const id = sessionIdParam || sessionId;
-      const data = await bahanSementaraService.getAllBySession(id);
-      if (data && data.length > 0) {
-        setDataList(data);
-        // Save to localStorage as backup
-        localStorage.setItem(`bahanData_${id}`, JSON.stringify(data));
-      } else {
-        // Try to load from localStorage if Supabase is empty
-        const cachedData = localStorage.getItem(`bahanData_${id}`);
-        if (cachedData) {
-          setDataList(JSON.parse(cachedData));
-        }
-      }
+      const data = await bahanSementaraService.getAll();
+      setDataList(data || []);
     } catch (error) {
       console.error("Error loading data:", error);
-      // Fallback to localStorage on error
-      const id = sessionIdParam || sessionId;
-      const cachedData = localStorage.getItem(`bahanData_${id}`);
-      if (cachedData) {
-        setDataList(JSON.parse(cachedData));
-      }
+      setDataList([]);
     }
   };
+
+  useEffect(() => {
+    if (!isBrowseModalOpen) return;
+
+    if (!browseSearchQuery) {
+      setBrowseSearchResults(dataList);
+      return;
+    }
+
+    const filtered = dataList.filter(
+      (item) =>
+        item.code_lama.toLowerCase().includes(browseSearchQuery.toLowerCase()) ||
+        item.nama_bahan.toLowerCase().includes(browseSearchQuery.toLowerCase()) ||
+        item.spesifikasi_bahan
+          ?.toLowerCase()
+          .includes(browseSearchQuery.toLowerCase())
+    );
+
+    setBrowseSearchResults(filtered);
+  }, [dataList, isBrowseModalOpen, browseSearchQuery]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -256,12 +267,6 @@ export default function BahanPage() {
       );
       setDataList(updatedData);
 
-      // Update localStorage
-      localStorage.setItem(
-        `bahanData_${sessionId}`,
-        JSON.stringify(updatedData)
-      );
-
       setDeleteConfirm({ show: false, id: null, itemName: "" });
       alert("Data berhasil dihapus!");
     } catch (error: any) {
@@ -287,17 +292,12 @@ export default function BahanPage() {
     try {
       const savedData = await bahanSementaraService.create(
         formData as Bahan,
-        "admin",
-        sessionId
+        username || "admin"
       );
 
       // Update localStorage with new data
       const currentData = dataList;
       const updatedData = [...currentData, savedData[0]];
-      localStorage.setItem(
-        `bahanData_${sessionId}`,
-        JSON.stringify(updatedData)
-      );
       setDataList(updatedData);
 
       alert("Data berhasil disimpan!");
@@ -326,6 +326,27 @@ export default function BahanPage() {
     });
     setSearchResults([]);
     setShowDropdown(false);
+  };
+
+  const handleResetDataTerdaftar = async () => {
+    const ok = confirm(
+      "Reset akan menghapus semua Data Bahan Terdaftar (tabel sementara) untuk SEMUA user. Lanjutkan?"
+    );
+    if (!ok) return;
+
+    setIsLoading(true);
+    try {
+      await bahanSementaraService.deleteAll();
+      setDataList([]);
+      setBrowseSearchResults([]);
+      handleReset();
+      alert("Data Bahan Terdaftar berhasil direset!");
+    } catch (error: any) {
+      console.error("Error resetting data:", error);
+      alert(`Gagal reset data: ${error?.message || error}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -658,7 +679,8 @@ export default function BahanPage() {
           )}
         </button>
         <button
-          onClick={handleReset}
+          onClick={handleResetDataTerdaftar}
+          disabled={isLoading}
           className="px-5 py-2 bg-red-500 hover:bg-red-600 border border-red-600 text-white rounded text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow"
         >
           <RotateCcw size={16} />
