@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bahan {
+  id                BigInt    @id @default(autoincrement())
+  code_lama         String?   @db.VarChar(100)
+  code_baru         String?   @db.VarChar(100)
+  nama_bahan        String    @db.VarChar(255)
+  spesifikasi_bahan String?
+  ukuran_unit       String?   @db.VarChar(100)
+  stok_awal         String?   @db.VarChar(50)
+  nama_loket        String?   @db.VarChar(255)
+  keterangan1       String?
+  keterangan2       String?
+  keterangan3       String?
+  keterangan4       String?
+  keterangan5       String?
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+  created_by        String?
+  currency          String?
+  cost              Decimal?  @db.Decimal
+  bea_material      String?
+  supplier          String?
+
+  @@index([code_baru], map: "idx_bahan_code_baru")
+  @@index([code_lama], map: "idx_bahan_code_lama")
+  @@index([nama_bahan], map: "idx_bahan_nama")
+}
+
+model bahan_input_sementara {
+  id                BigInt    @id @default(autoincrement())
+  session_id        String?   @db.VarChar(255)
+  code_lama         String?   @db.VarChar(255)
+  nama_bahan        String?   @db.VarChar(255)
+  spesifikasi_bahan String?
+  ukuran_unit       String?   @db.VarChar(100)
+  stok_awal         String?   @db.VarChar(100)
+  nama_loket        String?   @db.VarChar(255)
+  keterangan1       String?
+  keterangan2       String?
+  keterangan3       String?
+  keterangan4       String?
+  keterangan5       String?
+  created_by        String?   @db.VarChar(255)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model produk {
+  id         BigInt    @id @default(autoincrement())
+  namaproduk String    @db.VarChar(255)
+  rated      String?   @db.VarChar(100)
+  produk1    String?
+  produk2    String?
+  produk3    String?
+  stokproduk String?   @db.VarChar(50)
+  createdby  String?   @db.VarChar(100)
+  createdat  DateTime? @default(now()) @db.Timestamp(6)
+  updatedat  DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([namaproduk], map: "idx_produk_nama")
+}
+
+model users {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username   String    @unique
+  password   String
+  role       String    @default("admin")
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model SNR18_KAI {
+  id                 BigInt   @id @default(autoincrement())
+  
+  code               String   @db.VarChar(50)
+  namaBahan          String   @db.VarChar(255)
+  spesifikasi        String?  @db.Text
+  keterangan         String?  @db.Text
+
+  pakaiPerPc         Decimal? @db.Decimal(12, 4)
+  unit               String   @db.VarChar(20)
+
+  hargaIdr           Decimal? @db.Decimal(18, 2)
+  hargaUsd           Decimal? @db.Decimal(18, 2)
+  hargaJpy           Decimal? @db.Decimal(18, 2)
+
+  beaMasukPersen     Decimal? @db.Decimal(5, 2)
+  freight            Decimal? @db.Decimal(18, 2)
+  totalUsd           Decimal? @db.Decimal(18, 2)
+
+  pembelianTerakhir  DateTime?
+  keteranganAkhir    String?  @db.Text
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([code])
+  @@map("snr18_kai")
+}

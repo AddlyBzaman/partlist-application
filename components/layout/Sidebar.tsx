@@ -82,20 +82,20 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
                     <FileText size={13} className="flex-shrink-0" />
                     <span className="text-xs">Produk</span>
                   </button>
-
-                  <button
-                    onClick={() => router.push("/dashboard/list-bahan")}
-                    className={`flex items-center gap-1.5 w-full pl-12 pr-3 py-1.5 text-left transition-colors ${
-                      isActive("/dashboard/list-bahan")
-                        ? "bg-blue-500 text-white"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <FileText size={13} className="flex-shrink-0" />
-                    <span className="text-xs">List Bahan</span>
-                  </button>
                 </div>
               )}
+
+              <button
+                onClick={() => router.push("/dashboard/hpp")}
+                className={`flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 text-left transition-colors ${
+                  isActive("/dashboard/hpp")
+                    ? "bg-blue-500 text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                <FileText size={13} className="flex-shrink-0" />
+                <span className="text-xs">HPP</span>
+              </button>
 
               <button
                 onClick={() => toggleMenu("partList")}
@@ -115,8 +115,16 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
                   <button className="w-full pl-12 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors text-xs">
                     Part List per Produk
                   </button>
-                  <button className="w-full pl-12 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors text-xs">
-                    Part List per Bahan
+                  <button
+                    onClick={() => router.push("/dashboard/list-bahan")}
+                    className={`flex items-center gap-1.5 w-full pl-12 pr-3 py-1.5 text-left transition-colors text-xs ${
+                      isActive("/dashboard/list-bahan")
+                        ? "bg-blue-500 text-white"
+                        : "hover:bg-gray-100"
+                    }`}
+                  >
+                    <FileText size={13} className="flex-shrink-0" />
+                    <span className="text-xs">Part List per Bahan</span>
                   </button>
                 </div>
               )}
@@ -124,10 +132,17 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
               <button className="flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors">
                 <ChevronRight size={14} />
                 <MapPin size={13} className="flex-shrink-0" />
-                <span className="text-xs">Lokasi</span>
+                <span className="text-xs">Laporan</span>
               </button>
 
-              <button className="flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors">
+              <button
+                onClick={() => router.push("/dashboard/setup")}
+                className={`flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 text-left transition-colors ${
+                  isActive("/dashboard/setup")
+                    ? "bg-blue-500 text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
                 <ChevronRight size={14} />
                 <Settings size={13} className="flex-shrink-0" />
                 <span className="text-xs">Setup</span>

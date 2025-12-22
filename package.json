@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^7.2.0",
     "@supabase/supabase-js": "^2.84.0",
     "lucide-react": "^0.263.1",
     "next": "^14",
+    "prisma": "^7.2.0",
     "react": "^18",
     "react-dom": "^18",
     "xlsx": "^0.18.5"
