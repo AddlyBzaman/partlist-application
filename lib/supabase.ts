@@ -42,6 +42,54 @@ export interface Produk {
   createdby?: string;
   createdat?: string;
   updatedat?: string;
+  // Relations
+  produkSnr18Kais?: ProdukSnr18Kai[];
+  produkBahans?: ProdukBahan[];
+}
+
+// Types untuk Produk SNR18_KAI Relation
+export interface ProdukSnr18Kai {
+  id?: number;
+  produkId: number;
+  snr18KaiId: number;
+  quantity?: number;
+  createdAt?: string;
+  // Relations
+  produk?: Produk;
+  snr18Kai?: SNR18KAI;
+}
+
+// Types untuk Produk Bahan Relation
+export interface ProdukBahan {
+  id?: number;
+  produkId: number;
+  bahanId: number;
+  quantity?: number;
+  createdAt?: string;
+  // Relations
+  produk?: Produk;
+  bahan?: Bahan;
+}
+
+// Types untuk SNR18_KAI
+export interface SNR18KAI {
+  id?: number;
+  code: string;
+  namaBahan: string;
+  spesifikasi?: string;
+  keterangan?: string;
+  pakaiPerPc?: number;
+  unit: string;
+  hargaIdr?: number;
+  hargaUsd?: number;
+  hargaJpy?: number;
+  beaMasukPersen?: number;
+  freight?: number;
+  totalUsd?: number;
+  pembelianTerakhir?: string;
+  keteranganAkhir?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // CRUD Operations untuk Bahan (tabel utama)
@@ -238,7 +286,7 @@ export const bahanSementaraService = {
   },
 };
 
-// CRUD Operations untuk Produk (tetap sama)
+// CRUD Operations untuk Produk
 export const produkService = {
   async create(data: Produk, username?: string) {
     const insertData: any = { ...data };
@@ -258,7 +306,17 @@ export const produkService = {
   async getAll() {
     const { data, error } = await supabase
       .from("produk")
-      .select("*")
+      .select(`
+        *,
+        produkSnr18Kais (
+          *,
+          snr18Kai (*)
+        ),
+        produkBahans (
+          *,
+          bahan (*)
+        )
+      `)
       .order("createdat", { ascending: false });
 
     if (error) throw error;
@@ -268,7 +326,17 @@ export const produkService = {
   async getById(id: number) {
     const { data, error } = await supabase
       .from("produk")
-      .select("*")
+      .select(`
+        *,
+        produkSnr18Kais (
+          *,
+          snr18Kai (*)
+        ),
+        produkBahans (
+          *,
+          bahan (*)
+        )
+      `)
       .eq("id", id)
       .single();
 
@@ -297,8 +365,184 @@ export const produkService = {
     const { data, error } = await supabase
       .from("produk")
       .select("*")
-      .or(`namaproduk.ilike.%${keyword}%,kated.ilike.%${keyword}%`)
+      .or(`namaproduk.ilike.%${keyword}%,rated.ilike.%${keyword}%`)
       .order("createdat", { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+// CRUD Operations untuk Produk SNR18_KAI Relation
+export const produkSnr18KaiService = {
+  async create(data: ProdukSnr18Kai) {
+    const { data: result, error } = await supabase
+      .from("produkSnr18Kai")
+      .insert([data])
+      .select(`
+        *,
+        snr18Kai (*)
+      `);
+
+    if (error) throw error;
+    return result;
+  },
+
+  async getByProdukId(produkId: number) {
+    const { data, error } = await supabase
+      .from("produkSnr18Kai")
+      .select(`
+        *,
+        snr18Kai (*)
+      `)
+      .eq("produkId", produkId);
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: number, data: Partial<ProdukSnr18Kai>) {
+    const { data: result, error } = await supabase
+      .from("produkSnr18Kai")
+      .update(data)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    return result;
+  },
+
+  async delete(id: number) {
+    const { error } = await supabase.from("produkSnr18Kai").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  },
+
+  async deleteByProdukAndSnr18(produkId: number, snr18KaiId: number) {
+    const { error } = await supabase
+      .from("produkSnr18Kai")
+      .delete()
+      .eq("produkId", produkId)
+      .eq("snr18KaiId", snr18KaiId);
+
+    if (error) throw error;
+    return true;
+  },
+};
+
+// CRUD Operations untuk Produk Bahan Relation
+export const produkBahanService = {
+  async create(data: ProdukBahan) {
+    const { data: result, error } = await supabase
+      .from("produkBahan")
+      .insert([data])
+      .select(`
+        *,
+        bahan (*)
+      `);
+
+    if (error) throw error;
+    return result;
+  },
+
+  async getByProdukId(produkId: number) {
+    const { data, error } = await supabase
+      .from("produkBahan")
+      .select(`
+        *,
+        bahan (*)
+      `)
+      .eq("produkId", produkId);
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: number, data: Partial<ProdukBahan>) {
+    const { data: result, error } = await supabase
+      .from("produkBahan")
+      .update(data)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    return result;
+  },
+
+  async delete(id: number) {
+    const { error } = await supabase.from("produkBahan").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  },
+
+  async deleteByProdukAndBahan(produkId: number, bahanId: number) {
+    const { error } = await supabase
+      .from("produkBahan")
+      .delete()
+      .eq("produkId", produkId)
+      .eq("bahanId", bahanId);
+
+    if (error) throw error;
+    return true;
+  },
+};
+
+// CRUD Operations untuk SNR18_KAI
+export const snr18KaiService = {
+  async create(data: SNR18KAI) {
+    const { data: result, error } = await supabase
+      .from("snr18_kai")
+      .insert([data])
+      .select();
+
+    if (error) throw error;
+    return result;
+  },
+
+  async getAll() {
+    const { data, error } = await supabase
+      .from("snr18_kai")
+      .select("*")
+      .order("createdAt", { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getById(id: number) {
+    const { data, error } = await supabase
+      .from("snr18_kai")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: number, data: Partial<SNR18KAI>) {
+    const { data: result, error } = await supabase
+      .from("snr18_kai")
+      .update(data)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    return result;
+  },
+
+  async delete(id: number) {
+    const { error } = await supabase.from("snr18_kai").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  },
+
+  async search(keyword: string) {
+    const { data, error } = await supabase
+      .from("snr18_kai")
+      .select("*")
+      .or(`code.ilike.%${keyword}%,namaBahan.ilike.%${keyword}%,spesifikasi.ilike.%${keyword}%`)
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
     return data;

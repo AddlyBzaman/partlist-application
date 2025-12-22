@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -30,6 +29,9 @@ model bahan {
   bea_material      String?
   supplier          String?
 
+  // Relations
+  produkBahans produkBahan[]
+
   @@index([code_baru], map: "idx_bahan_code_baru")
   @@index([code_lama], map: "idx_bahan_code_lama")
   @@index([nama_bahan], map: "idx_bahan_nama")
@@ -54,7 +56,14 @@ model bahan_input_sementara {
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username   String    @unique
+  password   String
+  role       String    @default("admin")
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
 model produk {
   id         BigInt    @id @default(autoincrement())
   namaproduk String    @db.VarChar(255)
@@ -67,15 +76,43 @@ model produk {
   createdat  DateTime? @default(now()) @db.Timestamp(6)
   updatedat  DateTime? @default(now()) @db.Timestamp(6)
 
+  // Relations
+  produkSnr18Kais produkSnr18Kai[]
+  produkBahans    produkBahan[]
+
   @@index([namaproduk], map: "idx_produk_nama")
 }
 
-model users {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username   String    @unique
-  password   String
-  role       String    @default("admin")
-  created_at DateTime? @default(now()) @db.Timestamp(6)
+model produkBahan {
+  id       BigInt   @id @default(autoincrement())
+  produkId BigInt
+  bahanId  BigInt
+  quantity Decimal? @db.Decimal(12, 4)
+  createdAt DateTime @default(now())
+
+  // Relations
+  produk produk @relation(fields: [produkId], references: [id], onDelete: Cascade)
+  bahan bahan @relation(fields: [bahanId], references: [id], onDelete: Cascade)
+
+  @@unique([produkId, bahanId])
+  @@index([produkId])
+  @@index([bahanId])
+}
+
+model produkSnr18Kai {
+  id         BigInt   @id @default(autoincrement())
+  produkId   BigInt
+  snr18KaiId BigInt
+  quantity   Decimal? @db.Decimal(12, 4)
+  createdAt  DateTime @default(now())
+
+  // Relations
+  produk   produk   @relation(fields: [produkId], references: [id], onDelete: Cascade)
+  snr18Kai SNR18_KAI @relation(fields: [snr18KaiId], references: [id], onDelete: Cascade)
+
+  @@unique([produkId, snr18KaiId])
+  @@index([produkId])
+  @@index([snr18KaiId])
 }
 
 model SNR18_KAI {
@@ -102,6 +139,9 @@ model SNR18_KAI {
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  // Relations
+  produkSnr18Kais produkSnr18Kai[]
 
   @@index([code])
   @@map("snr18_kai")
