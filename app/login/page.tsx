@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/lib/auth/login"; // <-- pakai logic baru
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
@@ -26,15 +25,35 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    const user = await loginUser(username, password);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (!user) {
-      alert("Username atau Password salah!");
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(data.error || "Username atau Password salah!");
+        setIsLoading(false);
+        return;
+      }
+
+      // Simpan session data
+      sessionStorage.setItem("isLoggedIn", "true");
+      sessionStorage.setItem("username", data.user.username);
+      sessionStorage.setItem("role", data.user.role);
+      sessionStorage.setItem("id", data.user.id);
+
+      router.push("/dashboard/bahan");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Terjadi kesalahan. Silakan coba lagi.");
       setIsLoading(false);
-      return;
     }
-
-    router.push("/dashboard/bahan");
   };
 
   const handleKeyPress = (e: any) => {

@@ -1,17 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { getSession } from "@/lib/auth";
-import { produkService, produkSnr18KaiService, produkBahanService, bahanService, snr18KaiService, Produk, ProdukSnr18Kai, ProdukBahan, SNR18KAI, Bahan } from "@/lib/supabase";
-import { RefreshCw, FileText, Save, RotateCcw, Loader2, Search } from "lucide-react";
+import { getSession } from "@/lib/auth/login";
+import { Save, RotateCcw, Search, Download, Trash2, Loader2 } from "lucide-react";
 
 export default function ProdukPage() {
-  const router = useRouter();
-  const [session, setSession] = useState<any>(null);
+  const [username, setUsername] = useState<string>("");
 
   const [formData, setFormData] = useState({
-    namaproduk: "",
+    produk: "",
     rated: "",
     produk1: "",
     produk2: "",
@@ -19,71 +16,40 @@ export default function ProdukPage() {
     stokproduk: "",
   });
 
-  const [suggestions, setSuggestions] = useState<SNR18KAI[]>([]);
-  const [bahanSuggestions, setBahanSuggestions] = useState<Bahan[]>([]);
-  const [produkSuggestions, setProdukSuggestions] = useState<Produk[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showBahanSuggestions, setShowBahanSuggestions] = useState(false);
-  const [showProdukSuggestions, setShowProdukSuggestions] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<SNR18KAI | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<Produk[]>([]);
-  const [selectedProduk, setSelectedProduk] = useState<Produk | null>(null);
-  const [assignedSnr18Kais, setAssignedSnr18Kais] = useState<ProdukSnr18Kai[]>([]);
-  const [assignedBahans, setAssignedBahans] = useState<ProdukBahan[]>([]);
+  const [dataList, setDataList] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showAllProducts, setShowAllProducts] = useState(false);
 
-  // Auth Protection
   useEffect(() => {
-    const currentSession = getSession();
-    if (!currentSession.isLoggedIn) {
-      router.push("/login");
-    } else {
-      setSession(currentSession);
-    }
-  }, [router]);
+    const sess = getSession();
+    setUsername((sess as any)?.username || "");
+    loadAllProducts();
+  }, []);
 
-  // Search produk function
-  const handleSearch = async (keyword: string) => {
-    if (keyword.length > 2) {
-      try {
-        console.log("Searching for:", keyword);
-        
-        // Search di tabel produk
-        const produkResults = await produkService.search(keyword);
-        console.log("Produk search results:", produkResults);
-        
-        // Search di SNR18-KAI dan convert ke format produk
-        const snr18Results = await snr18KaiService.search(keyword);
-        console.log("SNR18-KAI search results:", snr18Results);
-        
-        // Convert SNR18-KAI ke format produk untuk display
-        const convertedSnr18 = snr18Results.map((item) => ({
-          id: item.id,
-          namaproduk: item.namaBahan,
-          rated: '',
-          produk1: '',
-          produk2: '',
-          produk3: '',
-          stokproduk: '',
-          createdby: item.created_at,
-          createdat: item.created_at,
-          updatedat: item.updated_at,
-          produkSnr18Kais: [],
-          produkBahans: [],
-        }));
-        
-        // Combine results
-        const allResults = [...produkResults, ...convertedSnr18];
-        console.log("Combined results:", allResults);
-        setSearchResults(allResults);
-      } catch (error) {
-        console.error("Error searching produk:", error);
-        setSearchResults([]);
+  const loadAllProducts = async () => {
+    try {
+      const response = await fetch('/api/produk/all');
+      if (response.ok) {
+        const data = await response.json();
+        setDataList(data);
       }
-    } else {
-      setSearchResults([]);
+    } catch (error) {
+      console.error('Error loading all products:', error);
     }
+  };
+
+  const highlightText = (text: string, highlight: string) => {
+    if (!highlight.trim()) return text;
+    
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => 
+      part.toLowerCase() === highlight.toLowerCase() ? <mark key={index} className="bg-yellow-200 px-1 rounded">{part}</mark> : part
+    );
   };
 
   const handleInputChange = async (
@@ -96,172 +62,91 @@ export default function ProdukPage() {
     }));
 
     // Search produk ketika mengetik di nama produk
-    if (name === 'namaproduk') {
-      await handleSearch(value);
-      
-      // Auto-complete untuk nama produk (search existing produk)
-      if (value.length > 2) {
-        try {
-          // Search existing products
-          const produkResults = await produkService.search(value);
-          setProdukSuggestions(produkResults);
-          setShowProdukSuggestions(true);
-
-          // Hide other suggestions
-          setShowSuggestions(false);
-          setShowBahanSuggestions(false);
-        } catch (error) {
-          console.error('Error searching produk:', error);
-        }
-      } else if (value.length <= 2) {
-        setShowProdukSuggestions(false);
-        setProdukSuggestions([]);
+    if (name === 'produk') {
+      if (value.length >= 3) {
+        await searchProducts(value);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
       }
     }
   };
 
-  const handleAssignSnr18Kai = (snr18Kai: SNR18KAI) => {
-    // Check if already assigned
-    const alreadyAssigned = assignedSnr18Kais.some(
-      (item) => item.snr18KaiId === snr18Kai.id
-    );
-
-    if (!alreadyAssigned) {
-      const newRelation: ProdukSnr18Kai = {
-        produkId: 0, // Will be set when saving
-        snr18KaiId: snr18Kai.id!,
-        quantity: 1,
-      };
-      setAssignedSnr18Kais([...assignedSnr18Kais, newRelation]);
-    }
-    setShowSuggestions(false);
-    setSuggestions([]);
-  };
-
-  const handleRemoveSnr18Kai = (snr18KaiId: number) => {
-    setAssignedSnr18Kais(
-      assignedSnr18Kais.filter((item) => item.snr18KaiId !== snr18KaiId)
-    );
-  };
-
-  const handleQuantityChange = (snr18KaiId: number, quantity: number) => {
-    setAssignedSnr18Kais(
-      assignedSnr18Kais.map((item) =>
-        item.snr18KaiId === snr18KaiId ? { ...item, quantity } : item
-      )
-    );
-  };
-
-  const handleAssignBahan = (bahan: Bahan) => {
-    // Check if already assigned
-    const alreadyAssigned = assignedBahans.some(
-      (item) => item.bahanId === bahan.id
-    );
-
-    if (!alreadyAssigned) {
-      const newRelation: ProdukBahan = {
-        produkId: 0, // Will be set when saving
-        bahanId: bahan.id!,
-        quantity: 1,
-      };
-      setAssignedBahans([...assignedBahans, newRelation]);
-    }
-    setShowBahanSuggestions(false);
-    setBahanSuggestions([]);
-  };
-
-  const handleRemoveBahan = (bahanId: number) => {
-    setAssignedBahans(
-      assignedBahans.filter((item) => item.bahanId !== bahanId)
-    );
-  };
-
-  const handleBahanQuantityChange = (bahanId: number, quantity: number) => {
-    setAssignedBahans(
-      assignedBahans.map((item) =>
-        item.bahanId === bahanId ? { ...item, quantity } : item
-      )
-    );
-  };
-
-  const handleProdukSelect = async (produk: Produk) => {
+  const searchProducts = async (keyword: string) => {
+    setIsSearching(true);
     try {
-      // Get full produk details with relations
-      const fullProduk = await produkService.getById(produk.id!);
-      setSelectedProduk(fullProduk);
-      
-      // Load existing relations
-      if (fullProduk.produkSnr18Kais) {
-        setAssignedSnr18Kais(fullProduk.produkSnr18Kais);
-      }
-      if (fullProduk.produkBahans) {
-        setAssignedBahans(fullProduk.produkBahans);
-      }
-      
-      // Fill form with produk data
-      setFormData({
-        namaproduk: fullProduk.namaproduk,
-        rated: fullProduk.rated || '',
-        produk1: fullProduk.produk1 || '',
-        produk2: fullProduk.produk2 || '',
-        produk3: fullProduk.produk3 || '',
-        stokproduk: fullProduk.stokproduk || '',
+      // Search dari tabel partlist
+      const response = await fetch(`/api/produk/search?keyword=${encodeURIComponent(keyword)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      
-      setShowProdukSuggestions(false);
-      setProdukSuggestions([]);
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data);
+        setShowDropdown(data.length > 0);
+      } else {
+        console.error('Search failed');
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
     } catch (error) {
-      console.error('Error loading produk details:', error);
+      console.error('Error searching products:', error);
+      setSearchResults([]);
+      setShowDropdown(false);
+    } finally {
+      setIsSearching(false);
     }
+  };
+
+  const handleSelectProduct = (product: any) => {
+    setFormData({
+      produk: product.PRODUK || '',
+      rated: product.RATED || '',
+      produk1: product.PRODUK1 || '',
+      produk2: product.PRODUK2 || '',
+      produk3: product.PRODUK3 || '',
+      stokproduk: product.NO_PART || '',
+    });
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleSave = async () => {
-    // Validasi
-    if (!formData.namaproduk) {
+    if (!formData.produk) {
       alert("Nama Produk wajib diisi!");
       return;
     }
 
     setIsLoading(true);
-
     try {
-      // Save produk
-      const produkData = await produkService.create(
-        formData as Produk,
-        session?.username || "Unknown"
-      );
+      // Save to partlist table
+      const response = await fetch('/api/produk/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          user_id: username,
+        }),
+      });
 
-      // Save assigned SNR18_KAI relations
-      if (assignedSnr18Kais.length > 0) {
-        for (const relation of assignedSnr18Kais) {
-          await produkSnr18KaiService.create({
-            produkId: produkData[0].id,
-            snr18KaiId: relation.snr18KaiId,
-            quantity: relation.quantity || 1,
-          });
+      if (response.ok) {
+        alert("Data produk berhasil disimpan!");
+        handleReset();
+        // Refresh search results
+        if (formData.produk.length >= 3) {
+          await searchProducts(formData.produk);
         }
+      } else {
+        alert("Gagal menyimpan data!");
       }
-
-      // Save assigned Bahan relations
-      if (assignedBahans.length > 0) {
-        for (const relation of assignedBahans) {
-          await produkBahanService.create({
-            produkId: produkData[0].id,
-            bahanId: relation.bahanId,
-            quantity: relation.quantity || 1,
-          });
-        }
-      }
-
-      alert("Data berhasil disimpan!");
-      handleReset();
-      // Refresh search results if there's a search term
-      if (formData.namaproduk.length > 2) {
-        await handleSearch(formData.namaproduk);
-      }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving data:", error);
-      alert(`Gagal menyimpan data: ${error.message}`);
+      alert("Gagal menyimpan data!");
     } finally {
       setIsLoading(false);
     }
@@ -269,34 +154,16 @@ export default function ProdukPage() {
 
   const handleReset = () => {
     setFormData({
-      namaproduk: "",
+      produk: "",
       rated: "",
       produk1: "",
       produk2: "",
       produk3: "",
       stokproduk: "",
     });
-    setSelectedProduct(null);
-    setSelectedProduk(null);
-    setAssignedSnr18Kais([]);
-    setAssignedBahans([]);
-    setShowSuggestions(false);
-    setShowBahanSuggestions(false);
-    setShowProdukSuggestions(false);
-    setSuggestions([]);
-    setBahanSuggestions([]);
-    setProdukSuggestions([]);
+    setShowDropdown(false);
+    setSearchResults([]);
   };
-  if (!session) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex flex-col">
@@ -309,40 +176,48 @@ export default function ProdukPage() {
 
       {/* Form Content */}
       <div className="flex-1 p-5 overflow-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-6xl">
-          <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-4xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
             {/* Left Column */}
             <div className="space-y-4">
-              <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
+              <div className="grid grid-cols-[200px_1fr] gap-3 items-center relative">
                 <label className="text-sm text-gray-700">
                   1. Nama / Nama Produk <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    name="namaproduk"
-                    value={formData.namaproduk}
+                    name="produk"
+                    value={formData.produk}
                     onChange={handleInputChange}
                     required
                     className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent w-full"
                     placeholder="Ketik untuk mencari..."
                   />
-                  {showProdukSuggestions && produkSuggestions.length > 0 && (
+                  {isSearching && (
+                    <div className="absolute right-2 top-2">
+                      <Loader2 size={16} className="animate-spin text-gray-400" />
+                    </div>
+                  )}
+
+                  {/* Dropdown Search Results */}
+                  {showDropdown && searchResults.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-64 overflow-y-auto">
-                      {produkSuggestions.map((produk) => (
+                      {searchResults.map((product) => (
                         <div
-                          key={produk.id}
-                          onClick={() => handleProdukSelect(produk)}
+                          key={product.id}
+                          onClick={() => handleSelectProduct(product)}
                           className="px-3 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                         >
-                          <div className="font-medium text-sm text-blue-600">{produk.namaproduk}</div>
+                          <div className="font-medium text-sm text-blue-600">
+                            {highlightText(product.PRODUK, formData.produk)}
+                          </div>
                           <div className="text-xs text-gray-600 space-y-1">
-                            <div><strong>Rated:</strong> {produk.rated || '-'}</div>
-                            <div><strong>Produk 1:</strong> {produk.produk1 || '-'}</div>
-                            <div><strong>Produk 2:</strong> {produk.produk2 || '-'}</div>
-                            <div><strong>Produk 3:</strong> {produk.produk3 || '-'}</div>
-                            <div><strong>Stok:</strong> {produk.stokproduk || '-'}</div>
-                            <div><strong>Dibuat:</strong> {produk.createdby || '-'} ({produk.createdat ? new Date(produk.createdat).toLocaleDateString('id-ID') : '-'})</div>
+                            <div><strong>Rated:</strong> {highlightText(product.RATED || '-', formData.rated)}</div>
+                            <div><strong>Produk 1:</strong> {highlightText(product.PRODUK1 || '-', formData.produk1)}</div>
+                            <div><strong>Produk 2:</strong> {highlightText(product.PRODUK2 || '-', formData.produk2)}</div>
+                            <div><strong>Produk 3:</strong> {highlightText(product.PRODUK3 || '-', formData.produk3)}</div>
+                            <div><strong>Stok:</strong> {highlightText(product.NO_PART || '-', formData.stokproduk)}</div>
                           </div>
                         </div>
                       ))}
@@ -351,7 +226,7 @@ export default function ProdukPage() {
                 </div>
               </div>
 
-                <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
+              <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
                 <label className="text-sm text-gray-700">2. Rated</label>
                 <input
                   type="text"
@@ -413,122 +288,123 @@ export default function ProdukPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Tabel Hasil Pencarian */}
+        {/* Tombol Lihat Semua Produk */}
+        <div className="mt-6 flex justify-between items-center">
+          <button
+            onClick={() => setShowAllProducts(!showAllProducts)}
+            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow"
+          >
+            <Search size={16} />
+            {showAllProducts ? 'Sembunyikan Semua' : 'Lihat Semua Produk'}
+          </button>
+          
           {searchResults.length > 0 && (
-            <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold mb-3">
-                Hasil Pencarian ({searchResults.length} produk ditemukan)
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Nama Produk</th>
-                      <th className="px-3 py-2 text-left">Rated</th>
-                      <th className="px-3 py-2 text-left">Produk 1</th>
-                      <th className="px-3 py-2 text-left">Produk 2</th>
-                      <th className="px-3 py-2 text-left">Produk 3</th>
-                      <th className="px-3 py-2 text-left">Stok</th>
-                      <th className="px-3 py-2 text-left">SNR18-KAI</th>
-                      <th className="px-3 py-2 text-left">Bahan</th>
-                      <th className="px-3 py-2 text-left">Dibuat Oleh</th>
-                      <th className="px-3 py-2 text-left">Tanggal</th>
+            <span className="text-sm text-gray-600">
+              {searchResults.length} produk ditemukan
+            </span>
+          )}
+        </div>
+
+        {/* Hasil Pencarian */}
+        {(searchResults.length > 0 || showAllProducts) && (
+          <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <h3 className="text-sm font-semibold mb-3">
+              {showAllProducts ? 'Semua Produk' : `Hasil Pencarian (${searchResults.length} produk ditemukan)`}
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[600px]">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Nama Produk</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Rated</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Produk 1</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Produk 2</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Produk 3</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Stok</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Dibuat Oleh</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Tanggal</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(showAllProducts ? dataList : searchResults).map((item) => (
+                    <tr key={item.id} className="border-t hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium">
+                        {showAllProducts ? item.PRODUK : highlightText(item.PRODUK, formData.produk)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {showAllProducts ? (item.RATED || '-') : highlightText(item.RATED || '-', formData.produk)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {showAllProducts ? (item.PRODUK1 || '-') : highlightText(item.PRODUK1 || '-', formData.produk)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {showAllProducts ? (item.PRODUK2 || '-') : highlightText(item.PRODUK2 || '-', formData.produk)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {showAllProducts ? (item.PRODUK3 || '-') : highlightText(item.PRODUK3 || '-', formData.produk)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {showAllProducts ? (item.NO_PART || '-') : highlightText(item.NO_PART || '-', formData.produk)}
+                      </td>
+                      <td className="px-3 py-2">{item.USER_ID || '-'}</td>
+                      <td className="px-3 py-2 text-xs whitespace-nowrap">
+                        {item.createdat ? new Date(item.createdat).toLocaleDateString('id-ID') : '-'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => handleSelectProduct(item)}
+                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs whitespace-nowrap"
+                        >
+                          Pilih
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {searchResults.map((item) => (
-                      <tr key={item.id} className="border-t hover:bg-gray-50">
-                        <td className="px-3 py-2 font-medium">{item.namaproduk}</td>
-                        <td className="px-3 py-2">{item.rated || '-'}</td>
-                        <td className="px-3 py-2">{item.produk1 || '-'}</td>
-                        <td className="px-3 py-2">{item.produk2 || '-'}</td>
-                        <td className="px-3 py-2">{item.produk3 || '-'}</td>
-                        <td className="px-3 py-2">{item.stokproduk || '-'}</td>
-                        <td className="px-3 py-2">
-                          {item.produkSnr18Kais && item.produkSnr18Kais.length > 0 ? (
-                            <div className="space-y-1">
-                              {item.produkSnr18Kais.map((rel) => (
-                                <div key={rel.id} className="text-xs bg-blue-50 px-1 py-0.5 rounded">
-                                  {rel.snr18Kai?.namaBahan} ({rel.quantity || 1})
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          {item.produkBahans && item.produkBahans.length > 0 ? (
-                            <div className="space-y-1">
-                              {item.produkBahans.map((rel) => (
-                                <div key={rel.id} className="text-xs bg-green-50 px-1 py-0.5 rounded">
-                                  {rel.bahan?.nama_bahan} ({rel.quantity || 1})
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">{item.createdby || '-'}</td>
-                        <td className="px-3 py-2 text-xs">
-                          {item.createdat ? new Date(item.createdat).toLocaleDateString('id-ID') : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Pesan jika tidak ada hasil */}
-          {formData.namaproduk.length > 2 && searchResults.length === 0 && (
-            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded p-4">
-              <p className="text-sm text-yellow-800">
-                Tidak ada produk ditemukan dengan keyword "{formData.namaproduk}"
-              </p>
-            </div>
-          )}
+        {/* Pesan untuk memulai pencarian */}
+        {formData.produk.length < 3 && (
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded p-4">
+            <p className="text-sm text-blue-800">
+              Ketik minimal 3 karakter untuk memulai pencarian produk...
+            </p>
+          </div>
+        )}
+      </div>
 
-          {/* Pesan untuk memulai pencarian */}
-          {formData.namaproduk.length <= 2 && (
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded p-4">
-              <p className="text-sm text-blue-800">
-                Ketik minimal 3 karakter untuk memulai pencarian produk...
-              </p>
-            </div>
+      {/* Action Buttons Footer */}
+      <div className="bg-gray-100 border-t border-gray-300 px-5 py-3 flex justify-end gap-3 shadow-inner">
+        <button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="px-5 py-2 bg-blue-500 hover:bg-blue-600 border border-blue-600 text-white rounded text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Menyimpan...
+            </>
+          ) : (
+            <>
+              <Save size={16} />
+              Save
+            </>
           )}
-        </div>
-
-        {/* Action Buttons Footer */}
-        <div className="bg-gray-100 border-t border-gray-300 px-5 py-3 flex justify-end gap-3 shadow-inner">
-          <button
-            onClick={handleSave}
-            disabled={isLoading}
-            className="px-5 py-2 bg-blue-500 hover:bg-blue-600 border border-blue-600 text-white rounded text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save size={16} />
-                Save
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleReset}
-            className="px-5 py-2 bg-red-500 hover:bg-red-600 border border-red-600 text-white rounded text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-        </div>
+        </button>
+        <button
+          onClick={handleReset}
+          className="px-5 py-2 bg-red-500 hover:bg-red-600 border border-red-600 text-white rounded text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow"
+        >
+          <RotateCcw size={16} />
+          Reset
+        </button>
       </div>
     </div>
   );

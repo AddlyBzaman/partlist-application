@@ -3,17 +3,23 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { bahanService, Bahan } from "@/lib/supabase";
+import { ListBahan } from "@/lib/services/listBahanService";
 import { RefreshCw, FileText, Download, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export default function ListBahanPage() {
   const router = useRouter();
   const [session, setSession] = useState<any>(null);
-  const [dataList, setDataList] = useState<Bahan[]>([]);
-  const [filteredData, setFilteredData] = useState<Bahan[]>([]);
+  const [dataList, setDataList] = useState<ListBahan[]>([]);
+  const [filteredData, setFilteredData] = useState<ListBahan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 1000,
+    total: 0,
+    totalPages: 0
+  });
 
   // Auth Protection
   useEffect(() => {
@@ -26,15 +32,47 @@ export default function ListBahanPage() {
     }
   }, [router]);
 
-  // Load data dari Supabase
-  const loadData = async () => {
+  // Load data dari database
+  const loadData = async (page: number = 1, limit: number = 1000, keyword?: string) => {
     setIsLoading(true);
     try {
-      const data = await bahanService.getAll();
-      setDataList(data || []);
-      setFilteredData(data || []);
+      // Use API endpoint instead of direct service call
+      const url = keyword 
+        ? `/api/list-bahan?page=${page}&limit=${limit}&keyword=${encodeURIComponent(keyword)}`
+        : `/api/list-bahan?page=${page}&limit=${limit}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      console.log('API response:', result);
+      console.log('Real data from partlist_a loaded:', result.data?.length || 0, 'items');
+      
+      setDataList(result.data || []);
+      setFilteredData(result.data || []);
+      setPagination(result.pagination || {
+        page: 1,
+        limit: 100,
+        total: 0,
+        totalPages: 0
+      });
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error('Error loading data from API:', error);
+      console.error('API call failed - check console for details');
+      
+      // Show empty data instead of mock data
+      setDataList([]);
+      setFilteredData([]);
+      setPagination({
+        page: 1,
+        limit: 100,
+        total: 0,
+        totalPages: 0
+      });
     } finally {
       setIsLoading(false);
     }
@@ -44,19 +82,14 @@ export default function ListBahanPage() {
   const handleSearch = (keyword: string) => {
     setSearchKeyword(keyword);
 
+    // If keyword is empty, load all data
     if (!keyword.trim()) {
-      setFilteredData(dataList);
+      loadData(1, pagination.limit);
       return;
     }
 
-    const filtered = dataList.filter(
-      (item) =>
-        item.code_lama?.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.nama_bahan?.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.spesifikasi_bahan?.toLowerCase().includes(keyword.toLowerCase())
-    );
-
-    setFilteredData(filtered);
+    // Load data with search keyword from server
+    loadData(1, pagination.limit, keyword);
   };
 
   // Export to Excel
@@ -64,21 +97,15 @@ export default function ListBahanPage() {
     // Prepare data untuk export
     const exportData = filteredData.map((item, index) => ({
       No: index + 1,
-      Code: item.code_lama || "-",
-      "Nama Bahan": item.nama_bahan || "-",
-      Spesifikasi: item.spesifikasi_bahan || "-",
-      Ukuran: item.ukuran_unit || "-",
-      "Stok Awal": item.stok_awal || "-",
-      "Nama Loket": item.nama_loket || "-",
-      "Keterangan 1": item.keterangan1 || "-",
-      "Keterangan 2": item.keterangan2 || "-",
-      "Keterangan 3": item.keterangan3 || "-",
-      "Keterangan 4": item.keterangan4 || "-",
-      "Keterangan 5": item.keterangan5 || "-",
-      "Dibuat Oleh": item.created_by || "-",
-      Tanggal: item.created_at
-        ? new Date(item.created_at).toLocaleDateString("id-ID")
-        : "-",
+      "Kode Lama": item.CODE || "-",
+      "Kode Baru": item.CODE_BARU || "-",
+      "Nama Bahan": item.LNAMA || "-",
+      Spesifikasi: item.SPEK || "-",
+      Unit: item.UNIT || "-",
+      Currency: "-",
+      Cost: "-",
+      "Bea Material": "-",
+      Supplier: "-",
     }));
 
     // Create workbook
@@ -126,7 +153,7 @@ export default function ListBahanPage() {
                 </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={loadData}
+                    onClick={() => loadData()}
                     className="px-4 py-2 bg-gray-200 hover:bg-gray-300 border border-gray-400 rounded text-sm font-medium flex items-center gap-2 transition-all"
                   >
                     <RefreshCw size={16} />
@@ -154,15 +181,20 @@ export default function ListBahanPage() {
                     type="text"
                     value={searchKeyword}
                     onChange={(e) => handleSearch(e.target.value)}
-                    placeholder="Cari berdasarkan code, nama bahan, atau spesifikasi..."
+                    placeholder="Cari berdasarkan kode, nama, spesifikasi, unit, atau produk..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-300">
                   <span className="text-sm text-gray-600">Total:</span>
                   <span className="text-sm font-semibold text-blue-600">
-                    {filteredData.length} data
+                    {pagination.total} data
                   </span>
+                  {pagination.totalPages > 1 && (
+                    <span className="text-sm text-gray-500 ml-2">
+                      (Halaman {pagination.page} dari {pagination.totalPages})
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -200,7 +232,10 @@ export default function ListBahanPage() {
                       <thead className="bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-300">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Code
+                            Kode Lama
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Kode Baru
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                             Nama Bahan
@@ -209,7 +244,19 @@ export default function ListBahanPage() {
                             Spesifikasi
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Ukuran
+                            Unit
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Currency
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Cost
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Bea Material
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Supplier
                           </th>
                         </tr>
                       </thead>
@@ -220,22 +267,65 @@ export default function ListBahanPage() {
                             className="hover:bg-blue-50 transition-colors"
                           >
                             <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                              {item.code_lama || "-"}
+                              {item.CODE || "-"}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900">
-                              {item.nama_bahan || "-"}
+                              {item.CODE_BARU || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {item.LNAMA || "-"}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600">
-                              {item.spesifikasi_bahan || "-"}
+                              {item.SPEK || "-"}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600">
-                              {item.ukuran_unit || "-"}
+                              {item.UNIT || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              -
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              -
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              -
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              -
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  
+                  {/* Pagination Controls */}
+                  {pagination.totalPages > 1 && (
+                    <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        Menampilkan {filteredData.length} dari {pagination.total} data
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => loadData(pagination.page - 1, pagination.limit)}
+                          disabled={pagination.page === 1}
+                          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm"
+                        >
+                          Previous
+                        </button>
+                        <span className="px-3 py-1 text-sm">
+                          {pagination.page} / {pagination.totalPages}
+                        </span>
+                        <button
+                          onClick={() => loadData(pagination.page + 1, pagination.limit)}
+                          disabled={pagination.page === pagination.totalPages}
+                          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

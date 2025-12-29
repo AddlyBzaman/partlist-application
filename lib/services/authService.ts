@@ -1,26 +1,25 @@
-import { supabase } from "@/lib/supabase";
+import { query } from '../db-simple';
 
 export async function checkLogin(username: string, password: string) {
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("username", username)
-    .eq("password", password) 
-    .single();
+  const users = await query(
+    'SELECT * FROM admin WHERE nama = ? AND password = ?',
+    [username, password]
+  ) as any[];
 
-  if (error || !data) {
+  if (users.length === 0) {
     return null;
   }
+
+  const user = users[0];
 
  
   if (typeof window !== "undefined") {
     sessionStorage.setItem("isLoggedIn", "true");
-    sessionStorage.setItem("username", data.username);
-    sessionStorage.setItem("role", data.role);
-    sessionStorage.setItem("user_id", data.id);
+    sessionStorage.setItem("username", user.nama);
+    sessionStorage.setItem("user_id", user.kd_admin.toString());
   }
 
-  return data.role;
+  return "admin"; // default role
 }
 
 export function logout() {

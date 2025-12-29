@@ -1,19 +1,24 @@
 export interface Bahan {
   id?: number;
-  code_lama: string;
-  nama_bahan: string;
-  spesifikasi_bahan: string;
-  ukuran_unit: string;
-  stok_awal: string;
-  nama_loket: string;
-  keterangan1: string;
-  keterangan2: string;
-  keterangan3: string;
-  keterangan4: string;
-  keterangan5: string;
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
+  NOMOR?: string | null;
+  CODE: string;
+  CODE_BARU?: string | null;
+  LNAMA?: string | null;
+  UNIT?: string | null;
+  PROSES?: string | null;
+  BDOWN?: string | null;
+  SPEK?: string | null;
+  RUMUS?: string | null;
+  Produk?: string | null;
+  pakaiperpcs?: string | null;
+  namawip?: string | null;
+  departemen?: string | null;
+  bagian?: string | null;
+  namabahan?: string | null;
+  last_update?: string | null;
+  user_id?: string | null;
+  NOPROD?: string | null;
+  FLAG?: string | null;
 }
 
 export interface BahanInputSementara extends Bahan {

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getSession, logout } from "@/lib/auth";
+import { getSession } from "@/lib/auth/login";
+import { logoutUser } from "@/lib/auth/login";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import LogoutModal from "@/components/modals/LogoutModal";
@@ -46,7 +47,7 @@ export default function DashboardLayout({
 
   const confirmLogout = () => {
     setIsLogoutModalOpen(false);
-    logout();
+    logoutUser();
     router.push("/login");
   };
 
