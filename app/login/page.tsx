@@ -13,7 +13,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (sessionStorage.getItem("isLoggedIn") === "true") {
-      router.push("/dashboard/bahan");
+      router.push("/dashboard/produk");
     }
   }, [router]);
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
       sessionStorage.setItem("role", data.user.role);
       sessionStorage.setItem("id", data.user.id);
 
-      router.push("/dashboard/bahan");
+      router.push("/dashboard/produk");
     } catch (error) {
       console.error("Login error:", error);
       alert("Terjadi kesalahan. Silakan coba lagi.");
