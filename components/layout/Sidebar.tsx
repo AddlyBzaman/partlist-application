@@ -59,18 +59,7 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
 
               {expandedMenus.referensi && (
                 <div className="mt-1">
-                  <button
-                    onClick={() => router.push("/dashboard/bahan")}
-                    className={`flex items-center gap-1.5 w-full pl-12 pr-3 py-1.5 text-left transition-colors ${
-                      isActive("/dashboard/bahan")
-                        ? "bg-blue-500 text-white"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <FileText size={13} className="flex-shrink-0" />
-                    <span className="text-xs font-medium">Bahan</span>
-                  </button>
-
+                  
                   <button
                     onClick={() => router.push("/dashboard/produk")}
                     className={`flex items-center gap-1.5 w-full pl-12 pr-3 py-1.5 text-left transition-colors ${
