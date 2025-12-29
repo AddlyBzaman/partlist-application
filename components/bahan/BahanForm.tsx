@@ -29,8 +29,8 @@ export default function BahanForm({
           <label className="block text-sm font-medium mb-1">Kode Lama</label>
           <input
             type="text"
-            value={form.code_lama || ""}
-            onChange={(e) => updateForm("code_lama", e.target.value)}
+            value={form.CODE || ""}
+            onChange={(e) => updateForm("CODE", e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2"
             required
           />
@@ -40,8 +40,8 @@ export default function BahanForm({
           <label className="block text-sm font-medium mb-1">Nama Bahan</label>
           <input
             type="text"
-            value={form.nama_bahan || ""}
-            onChange={(e) => updateForm("nama_bahan", e.target.value)}
+            value={form.namabahan || ""}
+            onChange={(e) => updateForm("namabahan", e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2"
             required
           />
@@ -53,8 +53,8 @@ export default function BahanForm({
           </label>
           <input
             type="text"
-            value={form.spesifikasi_bahan || ""}
-            onChange={(e) => updateForm("spesifikasi_bahan", e.target.value)}
+            value={form.SPEK || ""}
+            onChange={(e) => updateForm("SPEK", e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>
@@ -63,8 +63,8 @@ export default function BahanForm({
           <label className="block text-sm font-medium mb-1">Ukuran Unit</label>
           <input
             type="text"
-            value={form.ukuran_unit || ""}
-            onChange={(e) => updateForm("ukuran_unit", e.target.value)}
+            value={form.UNIT || ""}
+            onChange={(e) => updateForm("UNIT", e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>
@@ -73,8 +73,8 @@ export default function BahanForm({
           <label className="block text-sm font-medium mb-1">Stok Awal</label>
           <input
             type="text"
-            value={form.stok_awal || ""}
-            onChange={(e) => updateForm("stok_awal", e.target.value)}
+            value={form.BDOWN || ""}
+            onChange={(e) => updateForm("BDOWN", e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>
@@ -83,8 +83,8 @@ export default function BahanForm({
           <label className="block text-sm font-medium mb-1">Nama Loket</label>
           <input
             type="text"
-            value={form.nama_loket || ""}
-            onChange={(e) => updateForm("nama_loket", e.target.value)}
+            value={form.namawip || ""}
+            onChange={(e) => updateForm("namawip", e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>
