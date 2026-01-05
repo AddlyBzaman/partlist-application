@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { VercelRealtimeService } from '@/lib/realtime/vercel-realtime';
 
-// Node.js runtime for database operations (Edge doesn't support mysql2)
+// Node.js runtime for database operations
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -63,18 +62,6 @@ export async function POST(request: NextRequest) {
         items_count: bahan_items.length,
         created_at: new Date().toISOString()
       };
-
-      // Send real-time notification
-      const realtimeService = VercelRealtimeService.getInstance();
-      realtimeService.broadcast('PART_LIST_SAVED', {
-        produkId: produkId,
-        noprod,
-        produk_name,
-        satuan,
-        user_id,
-        items_count: bahan_items.length,
-        timestamp: new Date().toISOString()
-      });
       
       console.log('Part List Produk saved successfully:', savedData);
 

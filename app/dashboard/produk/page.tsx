@@ -75,11 +75,11 @@ export default function ProdukPage() {
   const searchProducts = async (keyword: string) => {
     setIsSearching(true);
     try {
-      // Search dari tabel partlist
-      const response = await fetch(`/api/produk/search?keyword=${encodeURIComponent(keyword)}`, {
+      // Search dari tabel partlist menggunakan header
+      const response = await fetch('/api/produk/search', {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'x-keyword': keyword
         },
       });
 

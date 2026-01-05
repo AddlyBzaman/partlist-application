@@ -3,106 +3,60 @@ export interface DraftData {
   produkName: string;
   satuan: string;
   bahanItems: any[];
-  lastSaved: string;
 }
 
+// Simple localStorage service for draft management
 export class LocalStorageService {
-  private static readonly DRAFT_KEY = 'partlist_draft';
+  private static readonly DRAFT_KEY = 'partlist-produk-draft';
 
-  // Save draft to both localStorage and server
-  static async saveDraft(data: DraftData, userId?: string): Promise<void> {
+  // Save draft to localStorage only
+  static saveDraft(draftData: DraftData): void {
     try {
-      // Save to localStorage (fallback)
-      localStorage.setItem(this.DRAFT_KEY, JSON.stringify(data));
-      
-      // Save to server if userId provided
-      if (userId) {
-        try {
-          await fetch('/api/part-list-produk/draft', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId,
-              draftData: data
-            }),
-          });
-        } catch (error) {
-          console.error('Error saving draft to server:', error);
-          // Continue with localStorage only
-        }
-      }
+      localStorage.setItem(this.DRAFT_KEY, JSON.stringify(draftData));
     } catch (error) {
       console.error('Error saving draft:', error);
     }
   }
 
-  // Load draft from server first, fallback to localStorage
-  static async loadDraft(userId?: string): Promise<DraftData | null> {
-    try {
-      // Try to load from server first
-      if (userId) {
-        try {
-          const response = await fetch('/api/part-list-produk/draft', {
-            headers: {
-              'x-user-id': userId
-            }
-          });
-          if (response.ok) {
-            const serverDraft = await response.json();
-            if (serverDraft) {
-              // Update localStorage with server data
-              localStorage.setItem(this.DRAFT_KEY, JSON.stringify(serverDraft.draft_data));
-              return serverDraft.draft_data;
-            }
-          }
-        } catch (error) {
-          console.error('Error loading draft from server:', error);
-          // Continue with localStorage
-        }
-      }
-
-      // Fallback to localStorage
-      const saved = localStorage.getItem(this.DRAFT_KEY);
-      if (saved) {
-        const draft = JSON.parse(saved);
-        // Check if draft is not too old (24 hours)
-        const savedTime = new Date(draft.lastSaved);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - savedTime.getTime()) / (1000 * 60 * 60);
-        
-        if (hoursDiff < 24) {
-          return draft;
-        } else {
-          // Clear old draft
-          this.clearDraft(userId);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading draft:', error);
-    }
-    return null;
+  // Auto-save draft with timestamp
+  static autoSave(draftData: DraftData, userId: string): void {
+    const draftWithTimestamp = {
+      ...draftData,
+      user_id: userId,
+      lastSaved: new Date().toISOString()
+    };
+    this.saveDraft(draftWithTimestamp);
   }
 
-  // Clear draft from both localStorage and server
-  static async clearDraft(userId?: string): Promise<void> {
+  // Load draft from localStorage only
+  static loadDraft(userId?: string): DraftData | null {
     try {
-      // Clear from localStorage
-      localStorage.removeItem(this.DRAFT_KEY);
-      
-      // Clear from server if userId provided
-      if (userId) {
-        try {
-          await fetch('/api/part-list-produk/draft', {
-            method: 'DELETE',
-            headers: {
-              'x-user-id': userId
-            }
-          });
-        } catch (error) {
-          console.error('Error clearing draft from server:', error);
+      const stored = localStorage.getItem(this.DRAFT_KEY);
+      if (stored) {
+        const draft = JSON.parse(stored);
+        // Only return if it belongs to current user or no user specified
+        if (!userId || draft.user_id === userId) {
+          return draft;
         }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      return null;
+    }
+  }
+
+  // Clear draft from localStorage
+  static clearDraft(userId?: string): void {
+    try {
+      if (userId) {
+        // Only clear if it belongs to current user
+        const draft = this.loadDraft(userId);
+        if (draft) {
+          localStorage.removeItem(this.DRAFT_KEY);
+        }
+      } else {
+        localStorage.removeItem(this.DRAFT_KEY);
       }
     } catch (error) {
       console.error('Error clearing draft:', error);
@@ -110,13 +64,7 @@ export class LocalStorageService {
   }
 
   // Check if draft exists
-  static async hasDraft(userId?: string): Promise<boolean> {
-    const draft = await this.loadDraft(userId);
-    return draft !== null;
-  }
-
-  // Auto-save current form data
-  static async autoSave(data: DraftData, userId?: string): Promise<void> {
-    await this.saveDraft(data, userId);
+  static hasDraft(userId?: string): boolean {
+    return this.loadDraft(userId) !== null;
   }
 }

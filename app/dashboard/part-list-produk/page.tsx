@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getSession } from "@/lib/auth/login";
-import { Save, RotateCcw, Search, Download, Trash2, Plus, Minus, Loader2, Wifi, WifiOff } from "lucide-react";
-import { useRealtime } from "@/hooks/useRealtime";
+import { Save, RotateCcw, Search, Download, Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { LocalStorageService } from "@/lib/storage/localStorage";
 
 interface BahanItem {
@@ -31,7 +30,6 @@ interface BahanSearchResult {
 }
 
 export default function PartListProdukPage() {
-  const { isConnected } = useRealtime();
   const [username, setUsername] = useState<string>("");
   const [noprod, setNoprod] = useState<string>("");
   const [produkName, setProdukName] = useState<string>("");
@@ -49,10 +47,6 @@ export default function PartListProdukPage() {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [savedData, setSavedData] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState<{ [key: number]: boolean }>({});
-  const [searchResults, setSearchResults] = useState<{ [key: number]: BahanSearchResult[] }>({});
-  const [showDropdown, setShowDropdown] = useState<{ [key: number]: boolean }>({});
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   const [showDraftRestore, setShowDraftRestore] = useState(false);
@@ -61,20 +55,17 @@ export default function PartListProdukPage() {
     const sess = getSession();
     setUsername((sess as any)?.username || "");
     
-    // Load recent data from database
-    loadRecentData();
-    
     // Check for existing draft (async)
     checkForDraft();
   }, []);
 
   // Check for existing draft
-  const checkForDraft = async () => {
+  const checkForDraft = () => {
     const sess = getSession();
     const userId = (sess as any)?.username;
     
     if (userId) {
-      const draft = await LocalStorageService.loadDraft(userId);
+      const draft = LocalStorageService.loadDraft(userId);
       if (draft) {
         setHasDraft(true);
         setShowDraftRestore(true);
@@ -99,26 +90,26 @@ export default function PartListProdukPage() {
     }
   }, [noprod, produkName, satuan, bahanItems, username]);
 
-  // Load recent data from database
-  const loadRecentData = async () => {
-    try {
-      const response = await fetch('/api/part-list-produk/recent', {
-        headers: {
-          'x-limit': '5'
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSavedData(data);
-      }
-    } catch (error) {
-      console.error('Error loading recent data:', error);
-    }
-  };
+  // Load recent data from database - REMOVED
+  // const loadRecentData = async () => {
+  //   try {
+  //     const response = await fetch('/api/part-list-produk/recent', {
+  //       headers: {
+  //         'x-limit': '5'
+  //       }
+  //     });
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setSavedData(data);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error loading recent data:', error);
+  //   }
+  // };
 
   // Restore draft from localStorage
-  const restoreDraft = async () => {
-    const draft = await LocalStorageService.loadDraft(username);
+  const restoreDraft = () => {
+    const draft = LocalStorageService.loadDraft(username);
     if (draft) {
       setNoprod(draft.noprod);
       setProdukName(draft.produkName);
@@ -130,39 +121,33 @@ export default function PartListProdukPage() {
   };
 
   // Clear draft
-  const clearDraft = async () => {
-    await LocalStorageService.clearDraft(username);
+  const clearDraft = () => {
+    LocalStorageService.clearDraft(username);
     setHasDraft(false);
     setShowDraftRestore(false);
   };
 
   // Clear draft after successful save
-  const clearDraftAfterSave = async () => {
-    await LocalStorageService.clearDraft(username);
+  const clearDraftAfterSave = () => {
+    LocalStorageService.clearDraft(username);
     setHasDraft(false);
   };
 
-  // Listen for real-time updates from other users
-  useEffect(() => {
-    const handlePartListSaved = (event: CustomEvent) => {
-      const data = event.detail;
-      // Don't update if this user saved it (to avoid duplicate)
-      if (data.user_id !== username) {
-        // Refresh data from database to get latest
-        loadRecentData();
-        
-        // Show notification that another user saved data
-        setShowSuccessMessage(true);
-        setTimeout(() => setShowSuccessMessage(false), 5000);
-      }
-    };
-
-    window.addEventListener('partListSaved', handlePartListSaved as EventListener);
-    
-    return () => {
-      window.removeEventListener('partListSaved', handlePartListSaved as EventListener);
-    };
-  }, [username]);
+  // Listen for real-time updates from other users - REMOVED
+  // useEffect(() => {
+  //   const handlePartListSaved = (event: CustomEvent) => {
+  //     const data = event.detail;
+  //     if (data.user_id !== username) {
+  //       loadRecentData();
+  //       setShowSuccessMessage(true);
+  //       setTimeout(() => setShowSuccessMessage(false), 5000);
+  //     }
+  //   };
+  //   window.addEventListener('partListSaved', handlePartListSaved as EventListener);
+  //   return () => {
+  //     window.removeEventListener('partListSaved', handlePartListSaved as EventListener);
+  //   };
+  // }, [username]);
 
   const handleProdukNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProdukName(e.target.value);
@@ -176,41 +161,44 @@ export default function PartListProdukPage() {
     setSatuan(e.target.value);
   };
 
-  const handleBahanItemChange = (id: number, field: keyof BahanItem, value: string) => {
+  const handleBahanItemChange = (id: number, field: string, value: string) => {
     setBahanItems((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
+        item.id === id
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item
       )
     );
 
-    // Trigger search only when typing in code field
-    if (field === 'code') {
-      if (value.length >= 2) {
-        searchBahan(id, value);
-      } else if (value.length === 0) {
-        // Clear all related fields when code is cleared
-        setBahanItems((prev) =>
-          prev.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  code: value,
-                  nama_bahan: '',
-                  spesifikasi: '',
-                  keterangan: '',
-                  unit: '',
-                  pakai_pc: '',
-                }
-              : item
-          )
-        );
-      }
+    // Auto-fill when typing in code field and exact match found
+    if (field === 'code' && value.length >= 3) {
+      searchAndAutoFill(id, value);
+    } else if (field === 'code' && value.length === 0) {
+      // Clear all related fields when code is cleared
+      setBahanItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                code: value,
+                nama_bahan: '',
+                spesifikasi: '',
+                keterangan: '',
+                unit: '',
+                pakai_pc: '',
+              }
+            : item
+        )
+      );
     }
   };
 
-  // Search bahan dengan keyword
-  const searchBahan = async (itemId: number, keyword: string) => {
-    setIsSearching(prev => ({ ...prev, [itemId]: true }));
+  // Search and auto-fill if exact match found
+  const searchAndAutoFill = async (itemId: number, keyword: string) => {
+    console.log('Auto-filling for keyword:', keyword);
     
     try {
       const response = await fetch('/api/part-list-produk/search', {
@@ -222,36 +210,35 @@ export default function PartListProdukPage() {
       
       if (response.ok) {
         const results = await response.json();
-        setSearchResults(prev => ({ ...prev, [itemId]: results }));
-        setShowDropdown(prev => ({ ...prev, [itemId]: true }));
-      } else {
-        setSearchResults(prev => ({ ...prev, [itemId]: [] }));
-        setShowDropdown(prev => ({ ...prev, [itemId]: false }));
+        console.log('Search results:', results);
+        
+        // Find exact match
+        const exactMatch = results.find((bahan: BahanSearchResult) => 
+          bahan.kode_lama === keyword || 
+          bahan.kode_lama?.toLowerCase() === keyword.toLowerCase()
+        );
+        
+        if (exactMatch) {
+          console.log('Exact match found:', exactMatch);
+          setBahanItems((prev) =>
+            prev.map((item) =>
+              item.id === itemId
+                ? {
+                    ...item,
+                    code: exactMatch.kode_lama || exactMatch.code || '',
+                    nama_bahan: exactMatch.nama_bahan || exactMatch.namabahan || '',
+                    spesifikasi: exactMatch.spesifikasi || '',
+                    unit: exactMatch.unit || '',
+                    pakai_pc: exactMatch.pakaiperpcs || '',
+                  }
+                : item
+            )
+          );
+        }
       }
     } catch (error) {
-      console.error('Error searching bahan:', error);
-      setSearchResults(prev => ({ ...prev, [itemId]: [] }));
-      setShowDropdown(prev => ({ ...prev, [itemId]: false }));
-    } finally {
-      setIsSearching(prev => ({ ...prev, [itemId]: false }));
+      console.error('Error auto-filling:', error);
     }
-  };
-
-  const handleSelectBahan = (itemId: number, bahan: BahanSearchResult) => {
-    setBahanItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              code: bahan.kode_lama || bahan.code || '',
-              nama_bahan: bahan.nama_bahan || bahan.namabahan || '',
-              spesifikasi: bahan.spesifikasi || '',
-              unit: bahan.unit || '',
-              pakai_pc: bahan.pakaiperpcs || '',
-            }
-          : item
-      )
-    );
   };
 
   const addBahanItem = () => {
@@ -318,18 +305,6 @@ export default function PartListProdukPage() {
       });
 
       if (response.ok) {
-        // Add to saved data cache
-        const newSavedData = {
-          produkId: (await response.json()).data.produkId,
-          noprod: noprod,
-          produk_name: produkName,
-          satuan: satuan,
-          bahan_items: bahanItems.filter(item => item.nama_bahan.trim() !== ""),
-          user_id: username,
-          created_at: new Date().toISOString()
-        };
-        setSavedData(prev => [...prev, newSavedData]);
-        
         setShowSuccessMessage(true);
         setTimeout(() => setShowSuccessMessage(false), 3000);
         
@@ -365,7 +340,6 @@ export default function PartListProdukPage() {
         unit: "",
       },
     ]);
-    setIsSearching({});
   };
 
   return (
@@ -382,19 +356,6 @@ export default function PartListProdukPage() {
                 <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
                 Draft tersimpan
               </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            {isConnected ? (
-              <>
-                <Wifi size={14} className="text-green-500" />
-                <span className="text-green-600">Real-time Active</span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={14} className="text-red-500" />
-                <span className="text-red-600">Offline</span>
-              </>
             )}
           </div>
         </div>
@@ -432,13 +393,6 @@ export default function PartListProdukPage() {
         {showSuccessMessage && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 mx-5">
             <span className="font-medium">Berhasil!</span> Data Part List Produk berhasil disimpan.
-          </div>
-        )}
-
-        {/* Real-time Notification */}
-        {savedData.length > 0 && (
-          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4 mx-5">
-            <span className="font-medium">Real-time Update:</span> {savedData[savedData.length - 1]?.user_id} baru saja menyimpan data "{savedData[savedData.length - 1]?.produk_name}"
           </div>
         )}
         {/* Produk Name */}
@@ -522,21 +476,14 @@ export default function PartListProdukPage() {
                         className="w-full border border-gray-200 rounded px-2 py-1 text-sm bg-gray-50 text-center"
                       />
                     </td>
-                    <td className="px-3 py-2 relative">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={item.code}
-                          onChange={(e) => handleBahanItemChange(item.id, "code", e.target.value)}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          placeholder="Ketik kode bahan..."
-                        />
-                        {isSearching[item.id] && (
-                          <div className="absolute right-2 top-2">
-                            <Loader2 size={14} className="animate-spin text-gray-400" />
-                          </div>
-                        )}
-                      </div>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.code}
+                        onChange={(e) => handleBahanItemChange(item.id, "code", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Ketik kode bahan..."
+                      />
                     </td>
                     <td className="px-3 py-2">
                       <input
@@ -581,7 +528,6 @@ export default function PartListProdukPage() {
                         onChange={(e) => handleBahanItemChange(item.id, "unit", e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Unit"
-                        readOnly
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
