@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { NotificationService } from '@/lib/realtime/notificationService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,12 +50,21 @@ export async function POST(request: NextRequest) {
 
       await connection.commit();
       
-      console.log('Part List Produk saved successfully:', {
+      const savedData = {
         produkId,
+        noprod,
         produk_name,
+        satuan,
         user_id,
-        items_count: bahan_items.length
-      });
+        items_count: bahan_items.length,
+        created_at: new Date().toISOString()
+      };
+
+      // Send real-time notification
+      const notificationService = NotificationService.getInstance();
+      notificationService.notifyPartListSaved(savedData);
+      
+      console.log('Part List Produk saved successfully:', savedData);
 
       return NextResponse.json(
         { 

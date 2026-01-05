@@ -1,0 +1,18 @@
+# Vercel Environment Variables Setup
+# Add these in Vercel Dashboard > Settings > Environment Variables
+
+# Database Connection
+DATABASE_URL=mysql://username:password@host:port/database
+
+# Authentication
+NEXTAUTH_SECRET=your-super-secret-key-at-least-32-characters-long
+NEXTAUTH_URL=https://your-domain.vercel.app
+
+# Application
+NODE_ENV=production
+
+# Optional: Rate limiting
+RATE_LIMIT_MAX=100
+RATE_LIMIT_WINDOW=900000
+
+# Note: For production, use Vercel Postgres or PlanetScale instead of direct MySQL
