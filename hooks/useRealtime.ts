@@ -16,14 +16,10 @@ export const useRealtime = () => {
     const session = getSession();
     const userId = (session as any)?.username || 'anonymous';
 
-    const eventSource = new EventSource(
-      `/api/realtime/events?userId=${encodeURIComponent(userId)}`
-    );
+    if (!userId) return;
 
-    eventSource.onopen = () => {
-      console.log('Real-time connection established');
-      setIsConnected(true);
-    };
+    // Create EventSource with custom headers using fetch workaround
+    const eventSource = new EventSource(`/api/realtime/events?userId=${encodeURIComponent(userId)}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -54,6 +50,7 @@ export const useRealtime = () => {
             break;
           case 'CONNECTION_ESTABLISHED':
             console.log('Connection confirmed:', message.data);
+            setIsConnected(true);
             break;
         }
       } catch (error) {

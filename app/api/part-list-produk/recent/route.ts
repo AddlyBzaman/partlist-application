@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '10');
-    const userId = url.searchParams.get('userId');
-
+    // Get limit from headers instead of query params
+    const limit = parseInt(request.headers.get('x-limit') || '10');
+    
+    // Default query without dynamic parameters
     let query = `
       SELECT 
         id,

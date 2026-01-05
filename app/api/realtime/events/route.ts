@@ -7,12 +7,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user ID from query params
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
+    // Get user ID from headers instead of query params to avoid dynamic server usage
+    const userId = request.headers.get('x-user-id') || 'anonymous';
     
-    if (!userId) {
-      return new Response('User ID required', { status: 400 });
+    if (!userId || userId === 'anonymous') {
+      return new Response('User ID required in x-user-id header', { status: 400 });
     }
 
     const realtimeService = VercelRealtimeService.getInstance();

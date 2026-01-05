@@ -44,7 +44,11 @@ export class LocalStorageService {
       // Try to load from server first
       if (userId) {
         try {
-          const response = await fetch(`/api/part-list-produk/draft?userId=${encodeURIComponent(userId)}`);
+          const response = await fetch('/api/part-list-produk/draft', {
+            headers: {
+              'x-user-id': userId
+            }
+          });
           if (response.ok) {
             const serverDraft = await response.json();
             if (serverDraft) {
@@ -90,8 +94,11 @@ export class LocalStorageService {
       // Clear from server if userId provided
       if (userId) {
         try {
-          await fetch(`/api/part-list-produk/draft?userId=${encodeURIComponent(userId)}`, {
+          await fetch('/api/part-list-produk/draft', {
             method: 'DELETE',
+            headers: {
+              'x-user-id': userId
+            }
           });
         } catch (error) {
           console.error('Error clearing draft from server:', error);

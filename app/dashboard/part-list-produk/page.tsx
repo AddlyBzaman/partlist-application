@@ -100,7 +100,11 @@ export default function PartListProdukPage() {
   // Load recent data from database
   const loadRecentData = async () => {
     try {
-      const response = await fetch('/api/part-list-produk/recent?limit=5');
+      const response = await fetch('/api/part-list-produk/recent', {
+        headers: {
+          'x-limit': '5'
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setSavedData(data);

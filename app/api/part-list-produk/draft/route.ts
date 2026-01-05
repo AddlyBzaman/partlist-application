@@ -8,11 +8,11 @@ export const dynamic = 'force-dynamic';
 // GET - Load user's draft
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
+    // Get user ID from headers instead of query params
+    const userId = request.headers.get('x-user-id');
     
     if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+      return NextResponse.json({ error: 'User ID required in x-user-id header' }, { status: 400 });
     }
 
     // Get draft from database
@@ -84,11 +84,11 @@ export async function POST(request: NextRequest) {
 // DELETE - Clear user's draft
 export async function DELETE(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
+    // Get user ID from headers instead of query params
+    const userId = request.headers.get('x-user-id');
     
     if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+      return NextResponse.json({ error: 'User ID required in x-user-id header' }, { status: 400 });
     }
 
     await db.query('DELETE FROM partlist_drafts WHERE user_id = ?', [userId]);
