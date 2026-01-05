@@ -1,0 +1,426 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { getSession } from "@/lib/auth/login";
+import { Save, RotateCcw, Search, Download, Trash2, Plus, Minus, Loader2 } from "lucide-react";
+
+interface BahanItem {
+  id: number;
+  no: number;
+  code: string;
+  nama_bahan: string;
+  spesifikasi: string;
+  keterangan: string;
+  pakai_pc: string;
+  unit: string;
+}
+
+interface BahanSearchResult {
+  id: number;
+  kode_lama: string;
+  kode_baru?: string;
+  nama_bahan?: string;
+  spesifikasi?: string;
+  unit?: string;
+  pakaiperpcs?: string;
+  namabahan?: string;
+  code?: string;
+  code_baru?: string;
+}
+
+export default function PartListProdukPage() {
+  const [username, setUsername] = useState<string>("");
+  const [noprod, setNoprod] = useState<string>("");
+  const [produkName, setProdukName] = useState<string>("");
+  const [satuan, setSatuan] = useState<string>("PCS");
+  const [bahanItems, setBahanItems] = useState<BahanItem[]>([
+    {
+      id: 1,
+      no: 1,
+      code: "",
+      nama_bahan: "",
+      spesifikasi: "",
+      keterangan: "",
+      pakai_pc: "",
+      unit: "",
+    },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [savedData, setSavedData] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState<{ [key: number]: boolean }>({});
+
+  useEffect(() => {
+    const sess = getSession();
+    setUsername((sess as any)?.username || "");
+  }, []);
+
+  const handleProdukNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProdukName(e.target.value);
+  };
+
+  const handleNoprodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNoprod(e.target.value);
+  };
+
+  const handleSatuanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSatuan(e.target.value);
+  };
+
+  const handleBahanItemChange = (id: number, field: keyof BahanItem, value: string) => {
+    setBahanItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
+
+    // Trigger search only when typing in code field
+    if (field === 'code') {
+      if (value.length >= 2) {
+        searchBahan(id, value);
+      } else if (value.length === 0) {
+        // Clear all related fields when code is cleared
+        setBahanItems((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  code: value,
+                  nama_bahan: '',
+                  spesifikasi: '',
+                  keterangan: '',
+                  unit: '',
+                  pakai_pc: '',
+                }
+              : item
+          )
+        );
+      }
+    }
+  };
+
+  const searchBahan = async (itemId: number, keyword: string) => {
+    setIsSearching(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const response = await fetch(`/api/part-list-produk/search?keyword=${encodeURIComponent(keyword)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.length > 0) {
+          // Auto-fill with the first result
+          handleSelectBahan(itemId, data[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error searching bahan:', error);
+    } finally {
+      setIsSearching(prev => ({ ...prev, [itemId]: false }));
+    }
+  };
+
+  const handleSelectBahan = (itemId: number, bahan: BahanSearchResult) => {
+    setBahanItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              code: bahan.kode_lama || bahan.code || '',
+              nama_bahan: bahan.nama_bahan || bahan.namabahan || '',
+              spesifikasi: bahan.spesifikasi || '',
+              unit: bahan.unit || '',
+              pakai_pc: bahan.pakaiperpcs || '',
+            }
+          : item
+      )
+    );
+  };
+
+  const addBahanItem = () => {
+    const newId = Math.max(...bahanItems.map((item) => item.id)) + 1;
+    const newNo = Math.max(...bahanItems.map((item) => item.no)) + 1;
+    setBahanItems((prev) => [
+      ...prev,
+      {
+        id: newId,
+        no: newNo,
+        code: "",
+        nama_bahan: "",
+        spesifikasi: "",
+        keterangan: "",
+        pakai_pc: "",
+        unit: "",
+      },
+    ]);
+  };
+
+  const removeBahanItem = (id: number) => {
+    if (bahanItems.length > 1) {
+      setBahanItems((prev) => {
+        const filtered = prev.filter((item) => item.id !== id);
+        // Renumber the remaining items
+        return filtered.map((item, index) => ({
+          ...item,
+          no: index + 1,
+        }));
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    if (!noprod.trim() || !produkName.trim() || !satuan.trim()) {
+      alert("NOPROD, PRODUK, dan SATUAN wajib diisi!");
+      return;
+    }
+
+    const hasValidBahan = bahanItems.some(
+      (item) => item.nama_bahan.trim() !== ""
+    );
+
+    if (!hasValidBahan) {
+      alert("Minimal harus ada satu bahan yang diisi!");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Save to API
+      const response = await fetch('/api/part-list-produk/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          noprod: noprod,
+          produk_name: produkName,
+          satuan: satuan,
+          bahan_items: bahanItems.filter(item => item.nama_bahan.trim() !== ""),
+          user_id: username,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Data Part List Produk berhasil disimpan!");
+        handleReset();
+        // Redirect to laporan page
+        window.location.href = '/dashboard/laporan/part-list-produk';
+      } else {
+        alert("Gagal menyimpan data!");
+      }
+    } catch (error) {
+      console.error("Error saving data:", error);
+      alert("Gagal menyimpan data!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setNoprod("");
+    setProdukName("");
+    setSatuan("PCS");
+    setBahanItems([
+      {
+        id: 1,
+        no: 1,
+        code: "",
+        nama_bahan: "",
+        spesifikasi: "",
+        keterangan: "",
+        pakai_pc: "",
+        unit: "",
+      },
+    ]);
+    setIsSearching({});
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Tab Header */}
+      <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
+        <span className="inline-block text-sm font-medium bg-white px-4 py-1 rounded-t border border-b-0 border-gray-300 shadow-sm">
+          Part List per Produk
+        </span>
+      </div>
+
+      {/* Form Content */}
+      <div className="flex-1 p-5 overflow-auto">
+        {/* Produk Name */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4">Informasi Produk</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-[150px_1fr] gap-3 items-center">
+              <label className="text-sm text-gray-700">
+                NOPROD <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={noprod}
+                onChange={handleNoprodChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Masukkan NOPROD"
+              />
+            </div>
+            <div className="grid grid-cols-[150px_1fr] gap-3 items-center">
+              <label className="text-sm text-gray-700">
+                PRODUK <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={produkName}
+                onChange={handleProdukNameChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Masukkan nama produk"
+              />
+            </div>
+            <div className="grid grid-cols-[150px_1fr] gap-3 items-center">
+              <label className="text-sm text-gray-700">
+                SATUAN <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={satuan}
+                onChange={handleSatuanChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Masukkan satuan"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bahan Items */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Daftar Bahan</h3>
+            <button
+              onClick={addBahanItem}
+              className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Tambah Bahan
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 w-12">No</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Code</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[200px]">Nama Bahan</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[200px]">Spesifikasi</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Keterangan</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Pakai/PC</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">Unit</th>
+                  <th className="px-3 py-2 text-center font-semibold text-gray-700 w-20">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bahanItems.map((item) => (
+                  <tr key={item.id} className="border-t hover:bg-gray-50">
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.no}
+                        readOnly
+                        className="w-full border border-gray-200 rounded px-2 py-1 text-sm bg-gray-50 text-center"
+                      />
+                    </td>
+                    <td className="px-3 py-2 relative">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={item.code}
+                          onChange={(e) => handleBahanItemChange(item.id, "code", e.target.value)}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          placeholder="Ketik kode bahan..."
+                        />
+                        {isSearching[item.id] && (
+                          <div className="absolute right-2 top-2">
+                            <Loader2 size={14} className="animate-spin text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.nama_bahan}
+                        onChange={(e) => handleBahanItemChange(item.id, "nama_bahan", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Nama bahan"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.spesifikasi}
+                        onChange={(e) => handleBahanItemChange(item.id, "spesifikasi", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Spesifikasi"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.keterangan}
+                        onChange={(e) => handleBahanItemChange(item.id, "keterangan", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Keterangan"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.pakai_pc}
+                        onChange={(e) => handleBahanItemChange(item.id, "pakai_pc", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Jumlah"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.unit}
+                        onChange={(e) => handleBahanItemChange(item.id, "unit", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Unit"
+                        readOnly
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => removeBahanItem(item.id)}
+                        disabled={bahanItems.length === 1}
+                        className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Hapus"
+                      >
+                        <Minus size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons Footer */}
+      <div className="bg-gray-100 border-t border-gray-300 px-5 py-3 flex justify-end gap-3">
+        <button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+        >
+          <Save size={16} />
+          {isLoading ? "Menyimpan..." : "Save"}
+        </button>
+        <button
+          onClick={handleReset}
+          className="px-5 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium flex items-center gap-2"
+        >
+          <RotateCcw size={16} />
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+}

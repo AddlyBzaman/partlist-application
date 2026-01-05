@@ -12,7 +12,7 @@ import {
   Settings,
 } from "lucide-react";
 
-type MenuKey = "application" | "referensi" | "partList";
+type MenuKey = "application" | "referensi" | "partList" | "laporan";
 
 interface SidebarProps {
   expandedMenus: Record<MenuKey, boolean>;
@@ -101,8 +101,16 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
 
               {expandedMenus.partList && (
                 <div className="mt-1">
-                  <button className="w-full pl-12 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors text-xs">
-                    Part List per Produk
+                  <button
+                    onClick={() => router.push("/dashboard/part-list-produk")}
+                    className={`flex items-center gap-1.5 w-full pl-12 pr-3 py-1.5 text-left transition-colors text-xs ${
+                      isActive("/dashboard/part-list-produk")
+                        ? "bg-blue-500 text-white"
+                        : "hover:bg-gray-100"
+                    }`}
+                  >
+                    <FileText size={13} className="flex-shrink-0" />
+                    <span className="text-xs">Part List per Produk</span>
                   </button>
                   <button
                     onClick={() => router.push("/dashboard/list-bahan")}
@@ -118,11 +126,34 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
                 </div>
               )}
 
-              <button className="flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors">
-                <ChevronRight size={14} />
+              <button
+                onClick={() => toggleMenu("laporan")}
+                className="flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 hover:bg-gray-100 text-left transition-colors"
+              >
+                {expandedMenus.laporan ? (
+                  <ChevronDown size={14} />
+                ) : (
+                  <ChevronRight size={14} />
+                )}
                 <MapPin size={13} className="flex-shrink-0" />
                 <span className="text-xs">Laporan</span>
               </button>
+
+              {expandedMenus.laporan && (
+                <div className="mt-1">
+                  <button
+                    onClick={() => router.push("/dashboard/laporan/part-list-produk")}
+                    className={`flex items-center gap-1.5 w-full pl-12 pr-3 py-1.5 text-left transition-colors text-xs ${
+                      isActive("/dashboard/laporan/part-list-produk")
+                        ? "bg-blue-500 text-white"
+                        : "hover:bg-gray-100"
+                    }`}
+                  >
+                    <FileText size={13} className="flex-shrink-0" />
+                    <span className="text-xs">Laporan Part List Produk</span>
+                  </button>
+                </div>
+              )}
 
               <button
                 onClick={() => router.push("/dashboard/setup")}

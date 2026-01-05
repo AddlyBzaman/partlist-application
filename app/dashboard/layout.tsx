@@ -8,7 +8,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import LogoutModal from "@/components/modals/LogoutModal";
 
-type MenuKey = "application" | "referensi" | "partList";
+type MenuKey = "application" | "referensi" | "partList" | "laporan";
 
 export default function DashboardLayout({
   children,
@@ -23,6 +23,7 @@ export default function DashboardLayout({
     application: true,
     referensi: true,
     partList: false,
+    laporan: false,
   });
 
   useEffect(() => {

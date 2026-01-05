@@ -15,8 +15,8 @@ export const bahanService = {
   async search(keyword: string): Promise<Bahan[]> {
     try {
       const [rows] = await db.query(
-        'SELECT * FROM partlist WHERE CODE LIKE ? OR LNAMA LIKE ? OR SPEK LIKE ? ORDER BY id DESC',
-        [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`]
+        'SELECT * FROM partlist_a WHERE CODE LIKE ? OR CODE_BARU LIKE ? OR LNAMA LIKE ? OR SPEK LIKE ? ORDER BY id DESC',
+        [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`]
       );
       return rows as Bahan[];
     } catch (error) {
