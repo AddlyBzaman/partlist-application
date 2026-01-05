@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server';
-import { NotificationService } from '@/lib/realtime/notificationService';
+import { VercelRealtimeService } from '@/lib/realtime/vercel-realtime';
 
-// Edge runtime config for Vercel
-export const runtime = 'edge';
+// Node.js runtime for compatibility with Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user ID from query params (temporary solution for demo)
+    // Get user ID from query params
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
     
@@ -14,65 +15,76 @@ export async function GET(request: NextRequest) {
       return new Response('User ID required', { status: 400 });
     }
 
-    const notificationService = NotificationService.getInstance();
+    const realtimeService = VercelRealtimeService.getInstance();
 
-    // Create SSE response with Vercel optimizations
-    const response = new Response(
-      new ReadableStream({
-        start(controller) {
-          // Send initial connection message
-          const initMessage = JSON.stringify({
-            type: 'CONNECTION_ESTABLISHED',
-            data: { userId, message: 'Connected to real-time updates' },
-            timestamp: new Date().toISOString()
-          });
-          controller.enqueue(`data: ${initMessage}\n\n`);
+    // Create SSE response optimized for Vercel Edge
+    const stream = new ReadableStream({
+      start(controller) {
+        // Send initial connection message
+        const initMessage = JSON.stringify({
+          type: 'CONNECTION_ESTABLISHED',
+          data: { 
+            userId, 
+            message: 'Connected to real-time updates',
+            platform: 'vercel-edge'
+          },
+          timestamp: new Date().toISOString()
+        });
+        controller.enqueue(`data: ${initMessage}\n\n`);
 
-          // Store connection
-          const mockResponse = {
-            write: (data: string) => {
-              try {
-                controller.enqueue(data);
-              } catch (error) {
-                // Connection closed
-              }
-            }
-          };
-          
-          notificationService.addConnection(userId, mockResponse);
-
-          // Cleanup on disconnect
-          request.signal.addEventListener('abort', () => {
-            notificationService.removeConnection(userId, mockResponse);
-          });
-
-          // Keep connection alive (Vercel optimization)
-          const keepAlive = setInterval(() => {
+        // Mock response object for compatibility
+        const mockResponse = {
+          write: (data: string) => {
             try {
-              const ping = JSON.stringify({
-                type: 'PING',
-                timestamp: new Date().toISOString()
-              });
-              controller.enqueue(`data: ${ping}\n\n`);
+              controller.enqueue(data);
             } catch (error) {
-              clearInterval(keepAlive);
+              // Connection closed, cleanup will handle
             }
-          }, 30000); // Ping every 30 seconds
-        }
-      }),
-      {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS'
-        }
-      }
-    );
+          }
+        };
+        
+        // Add connection
+        realtimeService.addConnection(userId, mockResponse);
 
-    return response;
+        // Cleanup on disconnect
+        const cleanup = () => {
+          realtimeService.removeConnection(userId, mockResponse);
+        };
+
+        request.signal.addEventListener('abort', cleanup);
+
+        // Keep connection alive with periodic pings
+        const pingInterval = setInterval(() => {
+          try {
+            const ping = JSON.stringify({
+              type: 'PING',
+              timestamp: new Date().toISOString()
+            });
+            controller.enqueue(`data: ${ping}\n\n`);
+          } catch (error) {
+            clearInterval(pingInterval);
+            cleanup();
+          }
+        }, 25000); // Ping every 25 seconds (Vercel limit is 30s)
+
+        // Cleanup interval on disconnect
+        request.signal.addEventListener('abort', () => {
+          clearInterval(pingInterval);
+        });
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control, Content-Type',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'X-Accel-Buffering': 'no' // Disable buffering for real-time
+      }
+    });
 
   } catch (error) {
     console.error('Error in SSE connection:', error);
