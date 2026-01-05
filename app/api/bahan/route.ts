@@ -6,17 +6,20 @@ export async function GET() {
     const [rows] = await db.query(`
       SELECT
         id,
-        kode_bahan_lama AS code_lama,
-        kode_bahan_baru AS code_baru,
-        nama_bahan,
-        spesifikasi,
-        unit,
-        currency,
-        cost,
-        bea_material,
-        supplier
+        CODE AS code,
+        CODE_BARU AS code_baru,
+        LNAMA AS nama_bahan,
+        SPEK AS spesifikasi,
+        UNIT AS unit,
+        PROSES,
+        BDOWN,
+        RUMUS,
+        Produk,
+        pakaiperpcs,
+        namawip,
+        departemen
       FROM partlist_a
-      ORDER BY id DESC
+      ORDER BY CODE ASC, LNAMA ASC
     `);
 
     return NextResponse.json(rows);

@@ -51,6 +51,8 @@ export default function PartListProdukPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [savedData, setSavedData] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<{ [key: number]: boolean }>({});
+  const [searchResults, setSearchResults] = useState<{ [key: number]: BahanSearchResult[] }>({});
+  const [showDropdown, setShowDropdown] = useState<{ [key: number]: boolean }>({});
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   const [showDraftRestore, setShowDraftRestore] = useState(false);
@@ -206,19 +208,30 @@ export default function PartListProdukPage() {
     }
   };
 
+  // Search bahan dengan keyword
   const searchBahan = async (itemId: number, keyword: string) => {
     setIsSearching(prev => ({ ...prev, [itemId]: true }));
+    
     try {
-      const response = await fetch(`/api/part-list-produk/search?keyword=${encodeURIComponent(keyword)}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.length > 0) {
-          // Auto-fill with the first result
-          handleSelectBahan(itemId, data[0]);
+      const response = await fetch('/api/part-list-produk/search', {
+        method: 'GET',
+        headers: {
+          'x-keyword': keyword
         }
+      });
+      
+      if (response.ok) {
+        const results = await response.json();
+        setSearchResults(prev => ({ ...prev, [itemId]: results }));
+        setShowDropdown(prev => ({ ...prev, [itemId]: true }));
+      } else {
+        setSearchResults(prev => ({ ...prev, [itemId]: [] }));
+        setShowDropdown(prev => ({ ...prev, [itemId]: false }));
       }
     } catch (error) {
       console.error('Error searching bahan:', error);
+      setSearchResults(prev => ({ ...prev, [itemId]: [] }));
+      setShowDropdown(prev => ({ ...prev, [itemId]: false }));
     } finally {
       setIsSearching(prev => ({ ...prev, [itemId]: false }));
     }

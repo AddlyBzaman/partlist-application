@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bahanService } from '@/lib/services/bahanService';
 
+// Node.js runtime for database operations
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const keyword = searchParams.get('keyword');
+    // Get keyword from headers instead of URL to avoid dynamic server usage
+    const keyword = request.headers.get('x-keyword');
 
     if (!keyword || keyword.length < 2) {
       return NextResponse.json([], { status: 200 });
