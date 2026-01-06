@@ -3,11 +3,18 @@
 import React, { useState, useEffect } from "react";
 import { getSession } from "@/lib/auth/login";
 import { Save, RotateCcw, Search, Download, Trash2, Loader2 } from "lucide-react";
+import { SkeletonLoading, TableSkeleton, CardSkeleton } from "@/components/ui/SkeletonLoading";
+import { CacheMonitor } from "@/components/ui/CacheMonitor";
+
+// Client-side cache for search results
+const searchCache = new Map<string, { data: any[]; timestamp: number }>();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 export default function ProdukPage() {
   const [username, setUsername] = useState<string>("");
 
   const [formData, setFormData] = useState({
+    noproduk: "",
     produk: "",
     rated: "",
     produk1: "",
@@ -17,11 +24,14 @@ export default function ProdukPage() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddMode, setIsAddMode] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [dataList, setDataList] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const sess = getSession();
@@ -30,14 +40,17 @@ export default function ProdukPage() {
   }, []);
 
   const loadAllProducts = async () => {
+    setIsDataLoading(true);
     try {
       const response = await fetch('/api/produk/all');
       if (response.ok) {
-        const data = await response.json();
-        setDataList(data);
+        const result = await response.json();
+        setDataList(result.data || result); // Handle both old and new format
       }
     } catch (error) {
       console.error('Error loading all products:', error);
+    } finally {
+      setIsDataLoading(false);
     }
   };
 
@@ -52,7 +65,7 @@ export default function ProdukPage() {
     );
   };
 
-  const handleInputChange = async (
+  const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
@@ -60,19 +73,20 @@ export default function ProdukPage() {
       ...prev,
       [name]: value,
     }));
-
-    // Search produk ketika mengetik di nama produk
-    if (name === 'produk') {
-      if (value.length >= 3) {
-        await searchProducts(value);
-      } else {
-        setSearchResults([]);
-        setShowDropdown(false);
-      }
-    }
   };
 
   const searchProducts = async (keyword: string) => {
+    // Check client-side cache first
+    const cacheKey = keyword.toLowerCase();
+    const cached = searchCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('Client cache hit for:', keyword);
+      setSearchResults(cached.data);
+      setShowDropdown(cached.data.length > 0);
+      return;
+    }
+
     setIsSearching(true);
     try {
       // Search dari tabel partlist menggunakan header
@@ -85,6 +99,13 @@ export default function ProdukPage() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Cache the result
+        searchCache.set(cacheKey, {
+          data,
+          timestamp: Date.now()
+        });
+        
         setSearchResults(data);
         setShowDropdown(data.length > 0);
       } else {
@@ -103,6 +124,7 @@ export default function ProdukPage() {
 
   const handleSelectProduct = (product: any) => {
     setFormData({
+      noproduk: product.NOPROD || '',
       produk: product.PRODUK || '',
       rated: product.RATED || '',
       produk1: product.PRODUK1 || '',
@@ -115,6 +137,10 @@ export default function ProdukPage() {
   };
 
   const handleSave = async () => {
+    if (!formData.noproduk) {
+      alert("No Produk wajib diisi!");
+      return;
+    }
     if (!formData.produk) {
       alert("Nama Produk wajib diisi!");
       return;
@@ -129,7 +155,13 @@ export default function ProdukPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          no_produk: formData.noproduk,
+          nama_produk: formData.produk,
+          rated: formData.rated,
+          produk1: formData.produk1,
+          produk2: formData.produk2,
+          produk3: formData.produk3,
+          stokproduk: formData.stokproduk,
           user_id: username,
         }),
       });
@@ -137,12 +169,12 @@ export default function ProdukPage() {
       if (response.ok) {
         alert("Data produk berhasil disimpan!");
         handleReset();
-        // Refresh search results
-        if (formData.produk.length >= 3) {
-          await searchProducts(formData.produk);
-        }
+        // Refresh all products list
+        await loadAllProducts();
       } else {
-        alert("Gagal menyimpan data!");
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        alert(errorData.error || "Gagal menyimpan data!");
       }
     } catch (error) {
       console.error("Error saving data:", error);
@@ -154,6 +186,7 @@ export default function ProdukPage() {
 
   const handleReset = () => {
     setFormData({
+      noproduk: "",
       produk: "",
       rated: "",
       produk1: "",
@@ -165,12 +198,37 @@ export default function ProdukPage() {
     setSearchResults([]);
   };
 
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+  };
+
+  const filteredData = dataList.filter(item => 
+    searchTerm === "" || 
+    item.PRODUK?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.NOPROD?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.RATED?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.NO_PART?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleRightClick = (e: React.MouseEvent, product: any) => {
+    e.preventDefault();
+    setFormData({
+      noproduk: product.NOPROD || '',
+      produk: product.PRODUK || '',
+      rated: product.RATED || '',
+      produk1: product.PRODUK1 || '',
+      produk2: product.PRODUK2 || '',
+      produk3: product.PRODUK3 || '',
+      stokproduk: product.NO_PART || '',
+    });
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Tab Header */}
       <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
         <span className="inline-block text-sm font-medium bg-white px-4 py-1 rounded-t border border-b-0 border-gray-300 shadow-sm">
-          Pencarian Produk
+          Input Data Produk
         </span>
       </div>
 
@@ -180,9 +238,24 @@ export default function ProdukPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
             {/* Left Column */}
             <div className="space-y-4">
+              <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
+                <label className="text-sm text-gray-700">
+                  1. No Produk <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="noproduk"
+                  value={formData.noproduk}
+                  onChange={handleInputChange}
+                  required
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  placeholder="Masukkan nomor produk..."
+                />
+              </div>
+
               <div className="grid grid-cols-[200px_1fr] gap-3 items-center relative">
                 <label className="text-sm text-gray-700">
-                  1. Nama / Nama Produk <span className="text-red-500">*</span>
+                  2. Nama Produk <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -192,42 +265,13 @@ export default function ProdukPage() {
                     onChange={handleInputChange}
                     required
                     className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent w-full"
-                    placeholder="Ketik untuk mencari..."
+                    placeholder="Masukkan nama produk..."
                   />
-                  {isSearching && (
-                    <div className="absolute right-2 top-2">
-                      <Loader2 size={16} className="animate-spin text-gray-400" />
-                    </div>
-                  )}
-
-                  {/* Dropdown Search Results */}
-                  {showDropdown && searchResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-64 overflow-y-auto">
-                      {searchResults.map((product) => (
-                        <div
-                          key={product.id}
-                          onClick={() => handleSelectProduct(product)}
-                          className="px-3 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                          <div className="font-medium text-sm text-blue-600">
-                            {highlightText(product.PRODUK, formData.produk)}
-                          </div>
-                          <div className="text-xs text-gray-600 space-y-1">
-                            <div><strong>Rated:</strong> {highlightText(product.RATED || '-', formData.rated)}</div>
-                            <div><strong>Produk 1:</strong> {highlightText(product.PRODUK1 || '-', formData.produk1)}</div>
-                            <div><strong>Produk 2:</strong> {highlightText(product.PRODUK2 || '-', formData.produk2)}</div>
-                            <div><strong>Produk 3:</strong> {highlightText(product.PRODUK3 || '-', formData.produk3)}</div>
-                            <div><strong>Stok:</strong> {highlightText(product.NO_PART || '-', formData.stokproduk)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">2. Rated</label>
+                <label className="text-sm text-gray-700">3. Rated</label>
                 <input
                   type="text"
                   name="rated"
@@ -238,7 +282,7 @@ export default function ProdukPage() {
               </div>
 
               <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">3. Produk 1</label>
+                <label className="text-sm text-gray-700">4. Produk 1</label>
                 <input
                   type="text"
                   name="produk1"
@@ -249,7 +293,7 @@ export default function ProdukPage() {
               </div>
 
               <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">4. Produk 2</label>
+                <label className="text-sm text-gray-700">5. Produk 2</label>
                 <input
                   type="text"
                   name="produk2"
@@ -260,7 +304,7 @@ export default function ProdukPage() {
               </div>
 
               <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">5. Produk 3</label>
+                <label className="text-sm text-gray-700">6. Produk 3</label>
                 <input
                   type="text"
                   name="produk3"
@@ -272,7 +316,7 @@ export default function ProdukPage() {
 
               <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
                 <label className="text-sm text-gray-700">
-                  6. Stok Produk / No Part
+                  7. Stok Produk / No Part
                 </label>
                 <select
                   name="stokproduk"
@@ -300,23 +344,38 @@ export default function ProdukPage() {
             {showAllProducts ? 'Sembunyikan Semua' : 'Lihat Semua Produk'}
           </button>
           
-          {searchResults.length > 0 && (
-            <span className="text-sm text-gray-600">
-              {searchResults.length} produk ditemukan
-            </span>
+          {showAllProducts && (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Cari produk..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+              <span className="text-sm text-gray-600">
+                {filteredData.length} produk ditemukan
+              </span>
+            </div>
           )}
         </div>
 
         {/* Hasil Pencarian */}
-        {(searchResults.length > 0 || showAllProducts) && (
+        {isDataLoading ? (
+          <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <h3 className="text-sm font-semibold mb-3">Memuat data...</h3>
+            <TableSkeleton rows={5} columns={9} />
+          </div>
+        ) : showAllProducts ? (
           <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <h3 className="text-sm font-semibold mb-3">
-              {showAllProducts ? 'Semua Produk' : `Hasil Pencarian (${searchResults.length} produk ditemukan)`}
+              Semua Produk ({filteredData.length} produk)
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[600px]">
                 <thead className="bg-gray-100">
                   <tr>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">No. Produk</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Nama Produk</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Rated</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Produk 1</th>
@@ -329,34 +388,51 @@ export default function ProdukPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(showAllProducts ? dataList : searchResults).map((item) => (
-                    <tr key={item.id} className="border-t hover:bg-gray-50">
+                  {filteredData.map((item) => (
+                    <tr 
+                      key={item.id} 
+                      className="border-t hover:bg-gray-50 cursor-pointer"
+                      onContextMenu={(e) => handleRightClick(e, item)}
+                    >
                       <td className="px-3 py-2 font-medium">
-                        {showAllProducts ? item.PRODUK : highlightText(item.PRODUK, formData.produk)}
+                        {item.NOPROD || '-'}
                       </td>
                       <td className="px-3 py-2">
-                        {showAllProducts ? (item.RATED || '-') : highlightText(item.RATED || '-', formData.produk)}
+                        {item.PRODUK || '-'}
                       </td>
                       <td className="px-3 py-2">
-                        {showAllProducts ? (item.PRODUK1 || '-') : highlightText(item.PRODUK1 || '-', formData.produk)}
+                        {item.RATED || '-'}
                       </td>
                       <td className="px-3 py-2">
-                        {showAllProducts ? (item.PRODUK2 || '-') : highlightText(item.PRODUK2 || '-', formData.produk)}
+                        {item.PRODUK1 || '-'}
                       </td>
                       <td className="px-3 py-2">
-                        {showAllProducts ? (item.PRODUK3 || '-') : highlightText(item.PRODUK3 || '-', formData.produk)}
+                        {item.PRODUK2 || '-'}
                       </td>
                       <td className="px-3 py-2">
-                        {showAllProducts ? (item.NO_PART || '-') : highlightText(item.NO_PART || '-', formData.produk)}
+                        {item.PRODUK3 || '-'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {item.NO_PART || '-'}
                       </td>
                       <td className="px-3 py-2">{item.USER_ID || '-'}</td>
                       <td className="px-3 py-2 text-xs whitespace-nowrap">
                         {item.createdat ? new Date(item.createdat).toLocaleDateString('id-ID') : '-'}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         <button
-                          onClick={() => handleSelectProduct(item)}
-                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs whitespace-nowrap"
+                          onClick={() => {
+                            setFormData({
+                              noproduk: item.NOPROD || '',
+                              produk: item.PRODUK || '',
+                              rated: item.RATED || '',
+                              produk1: item.PRODUK1 || '',
+                              produk2: item.PRODUK2 || '',
+                              produk3: item.PRODUK3 || '',
+                              stokproduk: item.NO_PART || '',
+                            });
+                          }}
+                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
                         >
                           Pilih
                         </button>
@@ -366,17 +442,11 @@ export default function ProdukPage() {
                 </tbody>
               </table>
             </div>
+            <div className="mt-3 text-xs text-gray-500">
+              Klik kanan pada baris untuk mengisi form secara otomatis
+            </div>
           </div>
-        )}
-
-        {/* Pesan untuk memulai pencarian */}
-        {formData.produk.length < 3 && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded p-4">
-            <p className="text-sm text-blue-800">
-              Ketik minimal 3 karakter untuk memulai pencarian produk...
-            </p>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Action Buttons Footer */}
@@ -406,6 +476,9 @@ export default function ProdukPage() {
           Reset
         </button>
       </div>
+      
+      {/* Cache Monitor */}
+      <CacheMonitor />
     </div>
   );
 }

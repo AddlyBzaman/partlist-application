@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { getSession } from "@/lib/auth/login";
 import { Save, RotateCcw, Search, Download, Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { LocalStorageService } from "@/lib/storage/localStorage";
+import { SkeletonLoading, TableSkeleton } from "@/components/ui/SkeletonLoading";
 
 interface BahanItem {
   id: number;
@@ -50,6 +51,9 @@ export default function PartListProdukPage() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   const [showDraftRestore, setShowDraftRestore] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const sess = getSession();
@@ -154,7 +158,50 @@ export default function PartListProdukPage() {
   };
 
   const handleNoprodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNoprod(e.target.value);
+    const value = e.target.value;
+    setNoprod(value);
+    
+    // Search when typing
+    if (value.length >= 3) {
+      searchPartlist(value);
+    } else {
+      setShowDropdown(false);
+      setSearchResults([]);
+    }
+  };
+
+  const searchPartlist = async (keyword: string) => {
+    setIsSearching(true);
+    try {
+      const response = await fetch('/api/produk/search', {
+        method: 'GET',
+        headers: {
+          'x-keyword': keyword
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data);
+        setShowDropdown(data.length > 0);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    } catch (error) {
+      console.error('Error searching partlist:', error);
+      setSearchResults([]);
+      setShowDropdown(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectPartlistItem = (item: any) => {
+    setNoprod(item.NOPROD || '');
+    setProdukName(item.PRODUK || '');
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleSatuanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,17 +446,44 @@ export default function PartListProdukPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <h3 className="text-lg font-semibold mb-4">Informasi Produk</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="grid grid-cols-[150px_1fr] gap-3 items-center">
+            <div className="grid grid-cols-[150px_1fr] gap-3 items-center relative">
               <label className="text-sm text-gray-700">
                 NOPROD <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={noprod}
-                onChange={handleNoprodChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="Masukkan NOPROD"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={noprod}
+                  onChange={handleNoprodChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="Cari NOPROD dari tabel partlist..."
+                />
+                
+                {/* Dropdown Search Results */}
+                {showDropdown && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded mt-1 shadow-lg z-10 max-h-60 overflow-y-auto">
+                    {searchResults.map((item, index) => (
+                      <div
+                        key={index}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleSelectPartlistItem(item)}
+                      >
+                        <div className="text-sm font-medium">{item.NOPROD || '-'}</div>
+                        <div className="text-xs text-gray-500">
+                          {item.PRODUK || '-'} | {item.RATED || '-'} | {item.NO_PART || '-'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Loading indicator */}
+                {isSearching && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded mt-1 shadow-lg z-10 px-3 py-2">
+                    <div className="text-sm text-gray-500">Mencari...</div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-[150px_1fr] gap-3 items-center">
               <label className="text-sm text-gray-700">

@@ -3,19 +3,35 @@ import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const { namaproduk, rated, produk1, produk2, produk3, stokproduk, user_id } = await request.json();
+    const body = await request.json();
+    console.log('Received data:', body);
 
-    if (!namaproduk) {
+    const {
+      no_produk,
+      nama_produk,
+      rated,
+      produk1,
+      produk2,
+      produk3,
+      stokproduk,
+      user_id
+    } = body;
+
+    if (!no_produk) {
+      return NextResponse.json({ error: 'No produk wajib diisi' }, { status: 400 });
+    }
+
+    if (!nama_produk) {
       return NextResponse.json({ error: 'Nama produk wajib diisi' }, { status: 400 });
     }
 
-    // Insert ke tabel partlist dengan kolom yang sesuai
     const [result] = await db.query(
       `INSERT INTO partlist (
-        nama_produk, rated, produk1, produk2, produk3, no_part, user_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        NOPROD, PRODUK, RATED, PRODUK1, PRODUK2, PRODUK3, NO_PART, USER_ID, LAST_UPDATE
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        namaproduk,
+        no_produk,
+        nama_produk,
         rated || null,
         produk1 || null,
         produk2 || null,
@@ -25,13 +41,16 @@ export async function POST(request: NextRequest) {
       ]
     );
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
       message: 'Produk berhasil disimpan',
-      id: (result as any).insertId 
-    });
+      data: result
+    }, { status: 201 });
+
   } catch (error) {
     console.error('Error creating product:', error);
-    return NextResponse.json({ error: 'Failed to save product' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Gagal menyimpan produk' },
+      { status: 500 }
+    );
   }
 }
