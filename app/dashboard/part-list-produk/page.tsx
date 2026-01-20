@@ -5,6 +5,63 @@ import { getSession } from "@/lib/auth/login";
 import { Save, RotateCcw, Search, Download, Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { LocalStorageService } from "@/lib/storage/localStorage";
 import { SkeletonLoading, TableSkeleton } from "@/components/ui/SkeletonLoading";
+import * as XLSX from 'xlsx';
+
+// Fungsi untuk download Excel
+const downloadExcel = (data: any[], filename: string) => {
+  // Create worksheet data
+  const headers = [
+    'No', 'Code', 'Nama Bahan', 'Spesifikasi', 'Keterangan', 'Pakai/PC', 'Unit',
+    'Rp.', 'US$', 'JPY', 'BM %', 'Freight', 'USD', 'Pembelian Terakhir', 'Keterangan'
+  ];
+  
+  const worksheetData = [
+    headers,
+    ...data.map(item => [
+      item.no,
+      item.code || '',
+      item.nama_bahan || '',
+      item.spesifikasi || '',
+      item.keterangan || '',
+      item.pakai_pc || '',
+      item.unit || '',
+      item.rp || '',
+      item.usd || '',
+      item.jpy || '',
+      item.bm_percent || '',
+      item.freight || '',
+      item.usd2 || '',
+      item.pembelian_terakhir || '',
+      item.keterangan2 || ''
+    ])
+  ];
+
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+  
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Daftar Bahan");
+  
+  // Generate Excel file
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  
+  // Create blob
+  const blob = new Blob([excelBuffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  });
+  
+  // Download
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}.xlsx`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
 interface BahanItem {
   id: number;
@@ -15,6 +72,14 @@ interface BahanItem {
   keterangan: string;
   pakai_pc: string;
   unit: string;
+  rp: string;
+  usd: string;
+  jpy: string;
+  bm_percent: string;
+  freight: string;
+  usd2: string;
+  pembelian_terakhir: string;
+  keterangan2: string;
 }
 
 interface BahanSearchResult {
@@ -45,6 +110,14 @@ export default function PartListProdukPage() {
       keterangan: "",
       pakai_pc: "",
       unit: "",
+      rp: "",
+      usd: "",
+      jpy: "",
+      bm_percent: "",
+      freight: "",
+      usd2: "",
+      pembelian_terakhir: "",
+      keterangan2: "",
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -302,6 +375,14 @@ export default function PartListProdukPage() {
         keterangan: "",
         pakai_pc: "",
         unit: "",
+        rp: "",
+        usd: "",
+        jpy: "",
+        bm_percent: "",
+        freight: "",
+        usd2: "",
+        pembelian_terakhir: "",
+        keterangan2: "",
       },
     ]);
   };
@@ -385,8 +466,18 @@ export default function PartListProdukPage() {
         keterangan: "",
         pakai_pc: "",
         unit: "",
+        rp: "",
+        usd: "",
+        jpy: "",
+        bm_percent: "",
+        freight: "",
+        usd2: "",
+        pembelian_terakhir: "",
+        keterangan2: "",
       },
     ]);
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   return (
@@ -516,13 +607,23 @@ export default function PartListProdukPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Daftar Bahan</h3>
-            <button
-              onClick={addBahanItem}
-              className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2"
-            >
-              <Plus size={16} />
-              Tambah Bahan
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadExcel(bahanItems, `Daftar_Bahan_${produkName || 'Produk'}_${new Date().toISOString().split('T')[0]}`)}
+                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium flex items-center gap-2"
+                title="Download Excel"
+              >
+                <Download size={16} />
+                Download Excel
+              </button>
+              <button
+                onClick={addBahanItem}
+                className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Tambah Bahan
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -536,6 +637,14 @@ export default function PartListProdukPage() {
                   <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Keterangan</th>
                   <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Pakai/PC</th>
                   <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">Unit</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Rp.</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">US$</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">JPY</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">BM %</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Freight</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">USD</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Pembelian Terakhir</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Keterangan</th>
                   <th className="px-3 py-2 text-center font-semibold text-gray-700 w-20">Aksi</th>
                 </tr>
               </thead>
@@ -602,6 +711,78 @@ export default function PartListProdukPage() {
                         onChange={(e) => handleBahanItemChange(item.id, "unit", e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Unit"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.rp}
+                        onChange={(e) => handleBahanItemChange(item.id, "rp", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Rp."
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.usd}
+                        onChange={(e) => handleBahanItemChange(item.id, "usd", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="US$"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.jpy}
+                        onChange={(e) => handleBahanItemChange(item.id, "jpy", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="JPY"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.bm_percent}
+                        onChange={(e) => handleBahanItemChange(item.id, "bm_percent", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="BM %"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.freight}
+                        onChange={(e) => handleBahanItemChange(item.id, "freight", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Freight"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.usd2}
+                        onChange={(e) => handleBahanItemChange(item.id, "usd2", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="USD"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.pembelian_terakhir}
+                        onChange={(e) => handleBahanItemChange(item.id, "pembelian_terakhir", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Pembelian Terakhir"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={item.keterangan2}
+                        onChange={(e) => handleBahanItemChange(item.id, "keterangan2", e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Keterangan"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">

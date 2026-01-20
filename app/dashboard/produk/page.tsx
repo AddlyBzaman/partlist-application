@@ -314,20 +314,36 @@ export default function ProdukPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-[200px_1fr] gap-3 items-center">
+              <div className="grid grid-cols-[150px_1fr] gap-2 items-center">
                 <label className="text-sm text-gray-700">
-                  7. Stok Produk / No Part
+                  7. Unit Produk
                 </label>
                 <select
                   name="stokproduk"
                   value={formData.stokproduk}
                   onChange={handleInputChange}
-                  className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white"
+                  className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white"
                 >
-                  <option value="">-- Pilih --</option>
-                  <option value="tersedia">Tersedia</option>
-                  <option value="kosong">Kosong</option>
-                  <option value="preorder">Pre-Order</option>
+                  <option value="">-- Pilih Unit --</option>
+                  <option value="BTG">BTG</option>
+                  <option value="BTL">BTL</option>
+                  <option value="BTNG">BTNG</option>
+                  <option value="CC">CC</option>
+                  <option value="GR">GR</option>
+                  <option value="KGS">KGS</option>
+                  <option value="LBR">LBR</option>
+                  <option value="LTR">LTR</option>
+                  <option value="M3">M3</option>
+                  <option value="ML">ML</option>
+                  <option value="MTR">MTR</option>
+                  <option value="MYR">MYR</option>
+                  <option value="PCS">PCS</option>
+                  <option value="PDC">PDC</option>
+                  <option value="PSC">PSC</option>
+                  <option value="ROL">ROL</option>
+                  <option value="SET">SET</option>
+                  <option value="TUB">TUB</option>
+                  <option value="YAR">YAR</option>
                 </select>
               </div>
             </div>
@@ -381,7 +397,7 @@ export default function ProdukPage() {
                     <th className="px-3 py-2 text-left whitespace-nowrap">Produk 1</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Produk 2</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Produk 3</th>
-                    <th className="px-3 py-2 text-left whitespace-nowrap">Stok</th>
+                    <th className="px-3 py-2 text-left whitespace-nowrap">Unit</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Dibuat Oleh</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Tanggal</th>
                     <th className="px-3 py-2 text-left whitespace-nowrap">Aksi</th>
