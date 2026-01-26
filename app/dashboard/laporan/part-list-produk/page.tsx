@@ -34,12 +34,33 @@ export default function LaporanPartListProdukPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [logoBase64, setLogoBase64] = useState<string>("");
+  const [logoLoading, setLogoLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const sess = getSession();
     setUsername((sess as any)?.username || "");
     fetchPartListData();
+    convertLogoToBase64();
   }, []);
+
+  const convertLogoToBase64 = async () => {
+    setLogoLoading(true);
+    try {
+      const response = await fetch('/logo.png');
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        setLogoBase64(base64data);
+        setLogoLoading(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error converting logo to base64:', error);
+      setLogoLoading(false);
+    }
+  };
 
   const fetchPartListData = async () => {
     setIsLoading(true);
@@ -102,9 +123,12 @@ export default function LaporanPartListProdukPage() {
   const handlePrint = () => {
     if (!selectedProduk) return;
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
+    // Check if logo is loaded
+    if (logoLoading || !logoBase64) {
+      alert('Logo sedang dimuat, silakan coba lagi beberapa saat...');
+      return;
+    }
+    
     const currentDate = new Date();
     const formattedDate = currentDate.toLocaleDateString('id-ID', { 
       day: '2-digit', 
@@ -117,7 +141,7 @@ export default function LaporanPartListProdukPage() {
       hour12: true 
     }).replace(' ', '');
 
-    printWindow.document.write(`
+    const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -193,7 +217,7 @@ export default function LaporanPartListProdukPage() {
         </head>
         <body>
           <div class="header-left">
-            <div>- Nikkatsu Electric Works</div>
+            <div><img src="${logoBase64}" alt="Logo Perusahaan" style="height: 30px; width: auto;" /></div>
             <div class="info-row">NOPROD : ${selectedProduk.noprod}</div>
             <div class="info-row">PRODUK : ${selectedProduk.produk_name}</div>
             <div class="info-row">SATUAN : ${selectedProduk.satuan}</div>
@@ -239,12 +263,34 @@ export default function LaporanPartListProdukPage() {
           </table>
         </body>
       </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    `;
+
+    // Create hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    document.body.appendChild(iframe);
+
+    // Write content to iframe and print
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(printContent);
+      iframeDoc.close();
+      
+      // Wait for content to load, then print
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+        
+        // Remove iframe after printing
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }, 500);
+    }
   };
 
   const filteredData = partListData.filter(item =>
@@ -355,10 +401,11 @@ export default function LaporanPartListProdukPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handlePrint}
-                  className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2"
+                  disabled={logoLoading}
+                  className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   <Printer size={16} />
-                  Print
+                  {logoLoading ? 'Loading...' : 'Print'}
                 </button>
                 <button
                   onClick={() => setShowDetail(false)}
