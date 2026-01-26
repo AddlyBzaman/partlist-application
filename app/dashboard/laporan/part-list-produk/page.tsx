@@ -191,9 +191,11 @@ export default function LaporanPartListProdukPage() {
               border-collapse: collapse; 
               margin-top: 60px;
               font-size: 10px;
+              border-top: 1px solid #000;
             }
             th, td { 
-              border: 1px solid #000; 
+              border-left: 1px solid #000; 
+              border-right: 1px solid #000; 
               padding: 4px; 
               text-align: left; 
               vertical-align: top;
@@ -202,6 +204,13 @@ export default function LaporanPartListProdukPage() {
               background-color: #f5f5f5; 
               font-weight: bold;
               text-align: center;
+              border-bottom: 1px solid #000;
+            }
+            tbody tr td {
+              border-bottom: none;
+            }
+            tbody tr:last-child td {
+              border-bottom: 1px solid #000;
             }
             .no-col { width: 5%; text-align: center; }
             .code-col { width: 15%; }
@@ -242,7 +251,7 @@ export default function LaporanPartListProdukPage() {
                 <th class="nama-col">NAMA BAHAN</th>
                 <th class="spek-col">SPESIFIKASI</th>
                 <th class="ket-col">KETERANGAN</th>
-                <th class="pakai-col">PAKAI / UNIT</th>
+                <th class="pakai-col">PAKAI / 1000</th>
               </tr>
             </thead>
             <tbody>
@@ -254,7 +263,7 @@ export default function LaporanPartListProdukPage() {
                     <td class="nama-col">${item.nama_bahan || ''}</td>
                     <td class="spek-col">${item.spesifikasi || ''}</td>
                     <td class="ket-col">${item.keterangan || ''}</td>
-                    <td class="pakai-col">${item.pakai_pc || ''} / ${item.unit || ''}</td>
+                    <td class="pakai-col">${item.pakai_pc || ''} ${item.unit || ''}</td>
                   </tr>
                 `).join('') : 
                 '<tr><td colspan="6" style="text-align: center;">Tidak ada data</td></tr>'
@@ -427,31 +436,31 @@ export default function LaporanPartListProdukPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">No</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">Code</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">Nama Bahan</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">Spesifikasi</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">Keterangan</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">Pakai/PC</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border border-gray-300">Unit</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">No</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Code</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Nama Bahan</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Spesifikasi</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Keterangan</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Pakai/1000</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Unit</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedItems.length > 0 ? (
                     selectedItems.map((item) => (
-                      <tr key={item.id} className="border-t">
-                        <td className="px-3 py-2 border border-gray-300">{item.item_no}</td>
-                        <td className="px-3 py-2 border border-gray-300">{item.code}</td>
-                        <td className="px-3 py-2 border border-gray-300">{item.nama_bahan}</td>
-                        <td className="px-3 py-2 border border-gray-300">{item.spesifikasi}</td>
-                        <td className="px-3 py-2 border border-gray-300">{item.keterangan}</td>
-                        <td className="px-3 py-2 border border-gray-300">{item.pakai_pc}</td>
-                        <td className="px-3 py-2 border border-gray-300">{item.unit}</td>
+                      <tr key={item.id}>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.item_no}</td>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.code}</td>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.nama_bahan}</td>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.spesifikasi}</td>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.keterangan}</td>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.pakai_pc} {item.unit}</td>
+                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.unit}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-gray-500 border border-gray-300">
+                      <td colSpan={7} className="px-3 py-8 text-center text-gray-500 border-l border-r border-gray-300">
                         Tidak ada data bahan
                       </td>
                     </tr>
