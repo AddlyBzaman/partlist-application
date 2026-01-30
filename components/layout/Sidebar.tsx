@@ -155,7 +155,7 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
                 </div>
               )}
 
-              <button
+              {/* <button
                 onClick={() => router.push("/dashboard/setup")}
                 className={`flex items-center gap-1.5 w-full pl-6 pr-3 py-1.5 text-left transition-colors ${
                   isActive("/dashboard/setup")
@@ -166,7 +166,7 @@ export default function Sidebar({ expandedMenus, toggleMenu }: SidebarProps) {
                 <ChevronRight size={14} />
                 <Settings size={13} className="flex-shrink-0" />
                 <span className="text-xs">Setup</span>
-              </button>
+              </button> */}
             </div>
           )}
         </div>

@@ -24,6 +24,7 @@ interface PartListProdukItem {
   keterangan: string;
   pakai_pc: string;
   unit: string;
+  BDOWN: string;
 }
 
 export default function LaporanPartListProdukPage() {
@@ -192,10 +193,13 @@ export default function LaporanPartListProdukPage() {
               margin-top: 60px;
               font-size: 10px;
               border-top: 1px solid #000;
+              border-bottom: 1px solid #000;
+              border-left: 1px solid #000;
+              border-right: 1px solid #000;
             }
             th, td { 
-              border-left: 1px solid #000; 
-              border-right: 1px solid #000; 
+              border-left: 1px solid #000;
+              border-right: 1px solid #000;
               padding: 4px; 
               text-align: left; 
               vertical-align: top;
@@ -204,12 +208,6 @@ export default function LaporanPartListProdukPage() {
               background-color: #f5f5f5; 
               font-weight: bold;
               text-align: center;
-              border-bottom: 1px solid #000;
-            }
-            tbody tr td {
-              border-bottom: none;
-            }
-            tbody tr:last-child td {
               border-bottom: 1px solid #000;
             }
             .no-col { width: 5%; text-align: center; }
@@ -256,16 +254,22 @@ export default function LaporanPartListProdukPage() {
             </thead>
             <tbody>
               ${selectedItems.length > 0 ? 
-                selectedItems.map((item, index) => `
-                  <tr>
-                    <td class="no-col">${index + 1}</td>
-                    <td class="code-col">${item.code || ''}</td>
-                    <td class="nama-col">${item.nama_bahan || ''}</td>
-                    <td class="spek-col">${item.spesifikasi || ''}</td>
-                    <td class="ket-col">${item.keterangan || ''}</td>
-                    <td class="pakai-col">${item.pakai_pc || ''} ${item.unit || ''}</td>
-                  </tr>
-                `).join('') : 
+                selectedItems.map((item, index) => {
+                  const currentBDOWN = item.BDOWN || '';
+                  const previousBDOWN = index > 0 ? (selectedItems[index - 1].BDOWN || '') : '';
+                  const shouldAddSpacing = index > 0 && currentBDOWN !== previousBDOWN;
+                  
+                  return `
+                    <tr>
+                      <td class="no-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${index + 1}</td>
+                      <td class="code-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.code || ''}</td>
+                      <td class="nama-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.nama_bahan || ''}</td>
+                      <td class="spek-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.spesifikasi || ''}</td>
+                      <td class="ket-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.keterangan || ''}</td>
+                      <td class="pakai-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.pakai_pc || ''} ${item.unit || ''}</td>
+                    </tr>
+                  `;
+                }).join('') : 
                 '<tr><td colspan="6" style="text-align: center;">Tidak ada data</td></tr>'
               }
             </tbody>
@@ -433,40 +437,48 @@ export default function LaporanPartListProdukPage() {
                 <p><strong>Tanggal:</strong> {selectedProduk && new Date(selectedProduk.created_at).toLocaleDateString('id-ID')}</p>
               </div>
 
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">No</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Code</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Nama Bahan</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Spesifikasi</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Keterangan</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Pakai/1000</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-300">Unit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedItems.length > 0 ? (
-                    selectedItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.item_no}</td>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.code}</td>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.nama_bahan}</td>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.spesifikasi}</td>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.keterangan}</td>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.pakai_pc} {item.unit}</td>
-                        <td className="px-3 py-2 border-l border-r border-gray-300">{item.unit}</td>
-                      </tr>
-                    ))
-                  ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-gray-500 border-l border-r border-gray-300">
-                        Tidak ada data bahan
-                      </td>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">No</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Code</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Nama Bahan</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Spesifikasi</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Keterangan</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Pakai/1000</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {selectedItems.length > 0 ? (
+                      selectedItems.map((item, index) => {
+                        const currentBDOWN = item.BDOWN || '';
+                        const previousBDOWN = index > 0 ? (selectedItems[index - 1].BDOWN || '') : '';
+                        const shouldAddSpacing = index > 0 && currentBDOWN !== previousBDOWN;
+                        const isLastItem = index === selectedItems.length - 1;
+                        const spacingClass = shouldAddSpacing ? 'pt-8' : 'py-2';
+                        
+                        return (
+                          <tr key={item.id}>
+                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.item_no}</td>
+                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.code}</td>
+                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.nama_bahan}</td>
+                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.spesifikasi}</td>
+                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.keterangan}</td>
+                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.pakai_pc} {item.unit}</td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-8 text-center text-gray-500 border-l border-r border-b border-gray-400">
+                          Tidak ada data bahan
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
               <div className="footer mt-8 text-right">
                 <p>Total Item: {selectedItems.length}</p>

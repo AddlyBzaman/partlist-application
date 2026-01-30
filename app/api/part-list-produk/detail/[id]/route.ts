@@ -30,6 +30,7 @@ export async function GET(
         keterangan,
         pakai_pc,
         unit,
+        BDOWN,
         created_at
       FROM partlist_produk_items 
       WHERE produk_id = ? 

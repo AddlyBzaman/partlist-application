@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
         LNAMA as nama_bahan,
         SPEK as spesifikasi,
         UNIT as unit,
-        pakaiperpcs
+        pakaiperpcs,
+        BDOWN
       FROM partlist_a 
       WHERE CODE LIKE ? OR LNAMA LIKE ?
       ORDER BY LNAMA ASC
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
       spesifikasi: item.spesifikasi || '',
       unit: item.unit || '',
       pakaiperpcs: item.pakaiperpcs || '',
+      BDOWN: item.BDOWN || '',
     }));
 
     // Cache the result

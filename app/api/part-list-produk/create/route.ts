@@ -34,10 +34,23 @@ export async function POST(request: NextRequest) {
 
       // Insert bahan items
       for (const item of bahan_items) {
+        // Fetch BDOWN from partlist_a based on code
+        let bdownValue = '';
+        if (item.code) {
+          const [bahanRows] = await connection.execute(
+            'SELECT BDOWN FROM partlist_a WHERE CODE = ? LIMIT 1',
+            [item.code]
+          );
+          const bahanData = bahanRows as any[];
+          if (bahanData.length > 0) {
+            bdownValue = bahanData[0].BDOWN || '';
+          }
+        }
+
         await connection.execute(
           `INSERT INTO partlist_produk_items 
-           (produk_id, item_no, code, nama_bahan, spesifikasi, keterangan, pakai_pc, unit) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (produk_id, item_no, code, nama_bahan, spesifikasi, keterangan, pakai_pc, unit, BDOWN) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             produkId,
             item.no,
@@ -46,7 +59,8 @@ export async function POST(request: NextRequest) {
             item.spesifikasi || '',
             item.keterangan || '',
             item.pakai_pc || '',
-            item.unit || ''
+            item.unit || '',
+            bdownValue
           ]
         );
       }

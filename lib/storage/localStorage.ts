@@ -9,7 +9,7 @@ export interface DraftData {
 export class LocalStorageService {
   private static readonly DRAFT_KEY = 'partlist-produk-draft';
 
-  // Save draft to localStorage only
+  // Save 'draft 'to localStorage only
   static saveDraft(draftData: DraftData): void {
     try {
       localStorage.setItem(this.DRAFT_KEY, JSON.stringify(draftData));
