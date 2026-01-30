@@ -16,7 +16,7 @@ export default function ListBahanPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 1000,
+    limit: 500,
     total: 0,
     totalPages: 0
   });
@@ -33,7 +33,7 @@ export default function ListBahanPage() {
   }, [router]);
 
   // Load data dari database
-  const loadData = async (page: number = 1, limit: number = 1000, keyword?: string) => {
+  const loadData = async (page: number = 1, limit: number = 500, keyword?: string) => {
     setIsLoading(true);
     try {
       // Use API endpoint instead of direct service call

@@ -281,6 +281,32 @@ export default function PartListProdukPage() {
     setSatuan(e.target.value);
   };
 
+  const handleBahanItemBlur = (id: number, field: string, value: string) => {
+    // Only process pakai_pc field on blur
+    if (field === 'pakai_pc' && value) {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        const dividedValue = numValue / 1000;
+        let processedValue;
+        
+        // Always format with 3 decimal places for consistency
+        processedValue = dividedValue.toFixed(3).replace('.', ',');
+        
+        // Update with processed value
+        setBahanItems((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  [field]: processedValue,
+                }
+              : item
+          )
+        );
+      }
+    }
+  };
+
   const handleBahanItemChange = (id: number, field: string, value: string) => {
     setBahanItems((prev) =>
       prev.map((item) =>
@@ -700,6 +726,7 @@ export default function PartListProdukPage() {
                         type="text"
                         value={item.pakai_pc}
                         onChange={(e) => handleBahanItemChange(item.id, "pakai_pc", e.target.value)}
+                        onBlur={(e) => handleBahanItemBlur(item.id, "pakai_pc", e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Jumlah"
                       />
