@@ -1,10 +1,10 @@
-import { query } from '../db-simple';
+import { query } from "../db-simple";
 
 export async function checkLogin(username: string, password: string) {
-  const users = await query(
-    'SELECT * FROM admin WHERE nama = ? AND password = ?',
-    [username, password]
-  ) as any[];
+  const users = (await query(
+    "SELECT * FROM admin WHERE nama = ? AND password = ?",
+    [username, password],
+  )) as any[];
 
   if (users.length === 0) {
     return null;
@@ -12,11 +12,10 @@ export async function checkLogin(username: string, password: string) {
 
   const user = users[0];
 
- 
   if (typeof window !== "undefined") {
     sessionStorage.setItem("isLoggedIn", "true");
     sessionStorage.setItem("username", user.nama);
-    sessionStorage.setItem("user_id", user.kd_admin.toString());
+    sessionStorage.setItem("user_id", user.id.toString());
   }
 
   return "admin"; // default role

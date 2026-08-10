@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from "../db";
 
 export interface ListBahan {
   id: number;
@@ -18,36 +18,57 @@ export interface ListBahan {
 }
 
 export class ListBahanService {
-  static async getAll(page: number = 1, limit: number = 1000, keyword?: string): Promise<{data: ListBahan[], pagination: any}> {
+  static async getAll(
+    page: number = 1,
+    limit: number = 1000,
+    keyword?: string,
+  ): Promise<{ data: ListBahan[]; pagination: any }> {
     try {
       // Test database connection first
-      console.log('Attempting database connection...');
-      
-      let query = 'SELECT id, NOMOR, CODE, CODE_BARU, LNAMA, SPEK, UNIT, PROSES, BDOWN, RUMUS, Produk, pakaiperpcs, namawip, departemen FROM partlist_a';
+      console.log("Attempting database connection...");
+
+      let query =
+        "SELECT NOMOR, CODE, CODE_BARU, LNAMA, SPEK, UNIT, PROSES, BDOWN, RUMUS, Produk, pakaiperpcs, namawip, departemen FROM partlist_a";
       let params: any[] = [];
 
       if (keyword && keyword.trim()) {
         const searchTerm = `%${keyword.trim()}%`;
-        query += ' WHERE CODE LIKE ? OR CODE_BARU LIKE ? OR LNAMA LIKE ? OR SPEK LIKE ? OR UNIT LIKE ? OR Produk LIKE ?';
-        params = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm];
+        query +=
+          " WHERE CODE LIKE ? OR CODE_BARU LIKE ? OR LNAMA LIKE ? OR SPEK LIKE ? OR UNIT LIKE ? OR Produk LIKE ?";
+        params = [
+          searchTerm,
+          searchTerm,
+          searchTerm,
+          searchTerm,
+          searchTerm,
+          searchTerm,
+        ];
       }
 
       // Add proper ordering for consistent results
-      query += ' ORDER BY CODE ASC, LNAMA ASC LIMIT ? OFFSET ?';
+      query += " ORDER BY CODE ASC, LNAMA ASC LIMIT ? OFFSET ?";
       params.push(limit, (page - 1) * limit);
 
-      console.log('Executing query:', query, 'with params:', params);
+      console.log("Executing query:", query, "with params:", params);
       const [rows] = await db.query(query, params);
-      console.log('Query successful, rows:', (rows as any[]).length);
+      console.log("Query successful, rows:", (rows as any[]).length);
 
       // Get total count for pagination
-      let countQuery = 'SELECT COUNT(*) as total FROM partlist_a';
+      let countQuery = "SELECT COUNT(*) as total FROM partlist_a";
       let countParams: any[] = [];
 
       if (keyword && keyword.trim()) {
         const searchTerm = `%${keyword.trim()}%`;
-        countQuery += ' WHERE CODE LIKE ? OR CODE_BARU LIKE ? OR LNAMA LIKE ? OR SPEK LIKE ? OR UNIT LIKE ? OR Produk LIKE ?';
-        countParams = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm];
+        countQuery +=
+          " WHERE CODE LIKE ? OR CODE_BARU LIKE ? OR LNAMA LIKE ? OR SPEK LIKE ? OR UNIT LIKE ? OR Produk LIKE ?";
+        countParams = [
+          searchTerm,
+          searchTerm,
+          searchTerm,
+          searchTerm,
+          searchTerm,
+          searchTerm,
+        ];
       }
 
       const [countResult] = await db.query(countQuery, countParams);
@@ -59,24 +80,32 @@ export class ListBahanService {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit)
-        }
+          totalPages: Math.ceil(total / limit),
+        },
       };
     } catch (error) {
-      console.error('Error fetching list bahan:', error);
-      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-      throw new Error(`Failed to fetch data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error fetching list bahan:", error);
+      console.error(
+        "Error details:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      console.error(
+        "Stack trace:",
+        error instanceof Error ? error.stack : "No stack trace",
+      );
+      throw new Error(
+        `Failed to fetch data: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   static async getById(id: number): Promise<ListBahan | null> {
     try {
-      const [rows] = await db.query('SELECT * FROM partlist_a WHERE id = ?', [id]);
+      const [rows] = await db.query("SELECT * FROM partlist_a LIMIT 1");
       const items = rows as ListBahan[];
       return items.length > 0 ? items[0] : null;
     } catch (error) {
-      console.error('Error fetching list bahan by id:', error);
+      console.error("Error fetching list bahan by id:", error);
       throw error;
     }
   }
@@ -99,29 +128,32 @@ export class ListBahanService {
           data.Produk || null,
           data.pakaiperpcs || null,
           data.namawip || null,
-          data.departemen || null
-        ]
+          data.departemen || null,
+        ],
       );
 
       const newItem = await this.getById((result as any).insertId);
       if (!newItem) {
-        throw new Error('Failed to retrieve created item');
+        throw new Error("Failed to retrieve created item");
       }
       return newItem;
     } catch (error) {
-      console.error('Error creating list bahan:', error);
+      console.error("Error creating list bahan:", error);
       throw error;
     }
   }
 
-  static async update(id: number, data: Partial<ListBahan>): Promise<ListBahan | null> {
+  static async update(
+    id: number,
+    data: Partial<ListBahan>,
+  ): Promise<ListBahan | null> {
     try {
       const [result] = await db.query(
         `UPDATE partlist_a SET 
           CODE = ?, CODE_BARU = ?, LNAMA = ?, SPEK = ?, 
           UNIT = ?, PROSES = ?, BDOWN = ?, RUMUS = ?, 
           Produk = ?, pakaiperpcs = ?, namawip = ?, departemen = ?
-        WHERE id = ?`,
+        WHERE CODE = ?`,
         [
           data.CODE || null,
           data.CODE_BARU || null,
@@ -135,8 +167,8 @@ export class ListBahanService {
           data.pakaiperpcs || null,
           data.namawip || null,
           data.departemen || null,
-          id
-        ]
+          id,
+        ],
       );
 
       if ((result as any).affectedRows === 0) {
@@ -145,26 +177,32 @@ export class ListBahanService {
 
       return await this.getById(id);
     } catch (error) {
-      console.error('Error updating list bahan:', error);
+      console.error("Error updating list bahan:", error);
       throw error;
     }
   }
 
   static async delete(id: number): Promise<boolean> {
     try {
-      const [result] = await db.query('DELETE FROM partlist_a WHERE id = ?', [id]);
+      const [result] = await db.query("DELETE FROM partlist_a WHERE CODE = ?", [
+        id,
+      ]);
       return (result as any).affectedRows > 0;
     } catch (error) {
-      console.error('Error deleting list bahan:', error);
+      console.error("Error deleting list bahan:", error);
       throw error;
     }
   }
 
-  static async search(keyword: string, page: number = 1, limit: number = 50): Promise<{data: ListBahan[], pagination: any}> {
+  static async search(
+    keyword: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{ data: ListBahan[]; pagination: any }> {
     try {
       return await this.getAll(page, limit, keyword);
     } catch (error) {
-      console.error('Error searching list bahan:', error);
+      console.error("Error searching list bahan:", error);
       throw error;
     }
   }

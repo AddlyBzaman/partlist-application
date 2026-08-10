@@ -135,11 +135,24 @@ export default function ProdukPage() {
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
 
+    const productKey =
+      productToDelete?.NOPROD ||
+      productToDelete?.NO_PART ||
+      productToDelete?.PRODUK;
+
+    if (!productKey) {
+      toast.error("Identifier produk tidak tersedia!");
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/produk/delete/${productToDelete.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/produk/delete/${encodeURIComponent(productKey)}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (response.ok) {
         toast.success("Produk berhasil dihapus! 🗑️");
@@ -718,9 +731,7 @@ export default function ProdukPage() {
                     Detail Bahan untuk {selectedMaterialProduct.produk} (
                     {selectedMaterialProduct.noprod})
                   </h3>
-                  <p className="text-sm text-slate-600">
-                
-                  </p>
+                  <p className="text-sm text-slate-600"></p>
                 </div>
                 <button
                   onClick={closeMaterialModal}

@@ -1,29 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { getDbConnection } from "@/lib/db-simple";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { noprod: string } }
+  { params }: { params: { noprod: string } },
 ) {
   try {
     const noprod = params.noprod;
-    
+    const db = await getDbConnection();
+
     // First get the product name from partlist table using NOPROD
-    const [productRows] = await db.query(
-      'SELECT PRODUK FROM partlist WHERE NOPROD = ?',
-      [noprod]
-    ) as any[];
-    
+    const [productRows] = (await db.execute(
+      "SELECT PRODUK FROM partlist WHERE NOPROD = ?",
+      [noprod],
+    )) as any[];
+
     if (productRows.length === 0) {
       return NextResponse.json([]);
     }
-    
+
     const productName = productRows[0].PRODUK;
-    
+
     // Get materials from partlist_a that are related to this product name
-    const [rows] = await db.query(`
+    const [rows] = await db.execute(
+      `
       SELECT
-        id,
         CODE AS code,
         CODE_BARU AS code_baru,
         LNAMA AS nama_bahan,
@@ -39,14 +40,16 @@ export async function GET(
       FROM partlist_a 
       WHERE Produk = ?
       ORDER BY CODE ASC, LNAMA ASC
-    `, [productName]);
-    
+    `,
+      [productName],
+    );
+
     return NextResponse.json(rows);
   } catch (error) {
-    console.error('Error fetching materials for product:', error);
+    console.error("Error fetching materials for product:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
