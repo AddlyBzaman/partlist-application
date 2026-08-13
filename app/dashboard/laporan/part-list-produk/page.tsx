@@ -91,10 +91,13 @@ export default function LaporanPartListProdukPage() {
   const fetchPartListData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/part-list-produk/list");
+      const response = await fetch("/api/part-list-produk/list", {
+        cache: "no-store",
+      });
       if (response.ok) {
         const data = await response.json();
         setPartListData(data);
+        setSearchKeyword("");
       }
     } catch (error) {
       console.error("Error fetching part list data:", error);
@@ -106,7 +109,9 @@ export default function LaporanPartListProdukPage() {
   const fetchPartListDetail = async (produkId: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/part-list-produk/detail/${produkId}`);
+      const response = await fetch(`/api/part-list-produk/detail/${produkId}`, {
+        cache: "no-store",
+      });
       if (response.ok) {
         const data = await response.json();
         setSelectedItems(data.items);
@@ -138,12 +143,24 @@ export default function LaporanPartListProdukPage() {
         `/api/part-list-produk/delete/${produk.id}`,
         {
           method: "DELETE",
+          cache: "no-store",
         },
       );
 
       if (response.ok) {
         showNotif("Part List Produk berhasil dihapus!", "success");
-        fetchPartListData();
+        setPartListData((prev) => prev.filter((item) => item.id !== produk.id));
+        setSearchKeyword("");
+
+        const listRes = await fetch("/api/part-list-produk/list", {
+          cache: "no-store",
+        });
+        if (listRes.ok) {
+          const data = await listRes.json();
+          setPartListData(data);
+        } else {
+          window.location.reload();
+        }
       } else {
         showNotif("Gagal menghapus data!", "error");
       }
