@@ -30,7 +30,9 @@ interface PartListProdukItem {
 export default function LaporanPartListProdukPage() {
   const [username, setUsername] = useState<string>("");
   const [partListData, setPartListData] = useState<PartListProduk[]>([]);
-  const [selectedProduk, setSelectedProduk] = useState<PartListProduk | null>(null);
+  const [selectedProduk, setSelectedProduk] = useState<PartListProduk | null>(
+    null,
+  );
   const [selectedItems, setSelectedItems] = useState<PartListProdukItem[]>([]);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -45,10 +47,21 @@ export default function LaporanPartListProdukPage() {
     convertLogoToBase64();
   }, []);
 
+  useEffect(() => {
+    const handler = (e: any) => {
+      // When a part list is saved elsewhere in the app, refresh the list
+      fetchPartListData();
+    };
+
+    window.addEventListener("partListSaved", handler as EventListener);
+    return () =>
+      window.removeEventListener("partListSaved", handler as EventListener);
+  }, []);
+
   const convertLogoToBase64 = async () => {
     setLogoLoading(true);
     try {
-      const response = await fetch('/logo.png');
+      const response = await fetch("/logo.png");
       const blob = await response.blob();
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -58,7 +71,7 @@ export default function LaporanPartListProdukPage() {
       };
       reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Error converting logo to base64:', error);
+      console.error("Error converting logo to base64:", error);
       setLogoLoading(false);
     }
   };
@@ -66,13 +79,13 @@ export default function LaporanPartListProdukPage() {
   const fetchPartListData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/part-list-produk/list');
+      const response = await fetch("/api/part-list-produk/list");
       if (response.ok) {
         const data = await response.json();
         setPartListData(data);
       }
     } catch (error) {
-      console.error('Error fetching part list data:', error);
+      console.error("Error fetching part list data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +100,7 @@ export default function LaporanPartListProdukPage() {
         setSelectedItems(data.items);
       }
     } catch (error) {
-      console.error('Error fetching part list detail:', error);
+      console.error("Error fetching part list detail:", error);
     } finally {
       setIsLoading(false);
     }
@@ -100,47 +113,58 @@ export default function LaporanPartListProdukPage() {
   };
 
   const handleDelete = async (produk: PartListProduk) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus part list produk "${produk.produk_name}"?`)) {
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin menghapus part list produk "${produk.produk_name}"?`,
+      )
+    ) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/part-list-produk/delete/${produk.id}`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(
+        `/api/part-list-produk/delete/${produk.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (response.ok) {
-        alert('Part List Produk berhasil dihapus!');
+        alert("Part List Produk berhasil dihapus!");
         fetchPartListData();
       } else {
-        alert('Gagal menghapus data!');
+        alert("Gagal menghapus data!");
       }
     } catch (error) {
-      console.error('Error deleting part list:', error);
-      alert('Gagal menghapus data!');
+      console.error("Error deleting part list:", error);
+      alert("Gagal menghapus data!");
     }
   };
 
   const handlePrint = () => {
     if (!selectedProduk) return;
-    
+
     // Check if logo is loaded
     if (logoLoading || !logoBase64) {
-      alert('Logo sedang dimuat, silakan coba lagi beberapa saat...');
+      alert("Logo sedang dimuat, silakan coba lagi beberapa saat...");
       return;
     }
-    
+
     const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('id-ID', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }).replace(/\//g, '-');
-    const formattedTime = currentDate.toLocaleTimeString('id-ID', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    }).replace(' ', '');
+    const formattedDate = currentDate
+      .toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+      .replace(/\//g, "-");
+    const formattedTime = currentDate
+      .toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+      .replace(" ", "");
 
     const printContent = `
       <!DOCTYPE html>
@@ -253,24 +277,29 @@ export default function LaporanPartListProdukPage() {
               </tr>
             </thead>
             <tbody>
-              ${selectedItems.length > 0 ? 
-                selectedItems.map((item, index) => {
-                  const currentBDOWN = item.BDOWN || '';
-                  const previousBDOWN = index > 0 ? (selectedItems[index - 1].BDOWN || '') : '';
-                  const shouldAddSpacing = index > 0 && currentBDOWN !== previousBDOWN;
-                  
-                  return `
+              ${
+                selectedItems.length > 0
+                  ? selectedItems
+                      .map((item, index) => {
+                        const currentBDOWN = item.BDOWN || "";
+                        const previousBDOWN =
+                          index > 0 ? selectedItems[index - 1].BDOWN || "" : "";
+                        const shouldAddSpacing =
+                          index > 0 && currentBDOWN !== previousBDOWN;
+
+                        return `
                     <tr>
-                      <td class="no-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${index + 1}</td>
-                      <td class="code-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.code || ''}</td>
-                      <td class="nama-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.nama_bahan || ''}</td>
-                      <td class="spek-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.spesifikasi || ''}</td>
-                      <td class="ket-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.keterangan || ''}</td>
-                      <td class="pakai-col" style="${shouldAddSpacing ? 'padding-top: 25px;' : ''}">${item.pakai_pc || ''} ${item.unit || ''}</td>
+                      <td class="no-col" style="${shouldAddSpacing ? "padding-top: 25px;" : ""}">${index + 1}</td>
+                      <td class="code-col" style="${shouldAddSpacing ? "padding-top: 25px;" : ""}">${item.code || ""}</td>
+                      <td class="nama-col" style="${shouldAddSpacing ? "padding-top: 25px;" : ""}">${item.nama_bahan || ""}</td>
+                      <td class="spek-col" style="${shouldAddSpacing ? "padding-top: 25px;" : ""}">${item.spesifikasi || ""}</td>
+                      <td class="ket-col" style="${shouldAddSpacing ? "padding-top: 25px;" : ""}">${item.keterangan || ""}</td>
+                      <td class="pakai-col" style="${shouldAddSpacing ? "padding-top: 25px;" : ""}">${item.pakai_pc || ""} ${item.unit || ""}</td>
                     </tr>
                   `;
-                }).join('') : 
-                '<tr><td colspan="6" style="text-align: center;">Tidak ada data</td></tr>'
+                      })
+                      .join("")
+                  : '<tr><td colspan="6" style="text-align: center;">Tidak ada data</td></tr>'
               }
             </tbody>
           </table>
@@ -279,12 +308,12 @@ export default function LaporanPartListProdukPage() {
     `;
 
     // Create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "absolute";
+    iframe.style.left = "-9999px";
+    iframe.style.top = "-9999px";
+    iframe.style.width = "0px";
+    iframe.style.height = "0px";
     document.body.appendChild(iframe);
 
     // Write content to iframe and print
@@ -293,11 +322,11 @@ export default function LaporanPartListProdukPage() {
       iframeDoc.open();
       iframeDoc.write(printContent);
       iframeDoc.close();
-      
+
       // Wait for content to load, then print
       setTimeout(() => {
         iframe.contentWindow?.print();
-        
+
         // Remove iframe after printing
         setTimeout(() => {
           document.body.removeChild(iframe);
@@ -306,10 +335,11 @@ export default function LaporanPartListProdukPage() {
     }
   };
 
-  const filteredData = partListData.filter(item =>
-    item.produk_name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-    item.user_id.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-    item.noprod.toLowerCase().includes(searchKeyword.toLowerCase())
+  const filteredData = partListData.filter(
+    (item) =>
+      item.produk_name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      item.user_id.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      item.noprod.toLowerCase().includes(searchKeyword.toLowerCase()),
   );
 
   return (
@@ -330,7 +360,10 @@ export default function LaporanPartListProdukPage() {
               <h3 className="text-lg font-semibold">Daftar Part List Produk</h3>
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+                  <Search
+                    size={18}
+                    className="absolute left-3 top-2.5 text-gray-400"
+                  />
                   <input
                     type="text"
                     value={searchKeyword}
@@ -351,13 +384,27 @@ export default function LaporanPartListProdukPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">No</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">NOPROD</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Nama Produk</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Satuan</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">User ID</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Tanggal Dibuat</th>
-                      <th className="px-3 py-2 text-center font-semibold text-gray-700">Aksi</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                        No
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                        NOPROD
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                        Nama Produk
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                        Satuan
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                        User ID
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                        Tanggal Dibuat
+                      </th>
+                      <th className="px-3 py-2 text-center font-semibold text-gray-700">
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -365,11 +412,19 @@ export default function LaporanPartListProdukPage() {
                       filteredData.map((item, index) => (
                         <tr key={item.id} className="border-t hover:bg-gray-50">
                           <td className="px-3 py-2">{index + 1}</td>
-                          <td className="px-3 py-2 font-medium">{item.noprod}</td>
-                          <td className="px-3 py-2 font-medium">{item.produk_name}</td>
+                          <td className="px-3 py-2 font-medium">
+                            {item.noprod}
+                          </td>
+                          <td className="px-3 py-2 font-medium">
+                            {item.produk_name}
+                          </td>
                           <td className="px-3 py-2">{item.satuan}</td>
                           <td className="px-3 py-2">{item.user_id}</td>
-                          <td className="px-3 py-2">{new Date(item.created_at).toLocaleDateString('id-ID')}</td>
+                          <td className="px-3 py-2">
+                            {new Date(item.created_at).toLocaleDateString(
+                              "id-ID",
+                            )}
+                          </td>
                           <td className="px-3 py-2 text-center">
                             <button
                               onClick={() => handleViewDetail(item)}
@@ -390,7 +445,10 @@ export default function LaporanPartListProdukPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
+                        <td
+                          colSpan={7}
+                          className="px-3 py-8 text-center text-gray-500"
+                        >
                           Tidak ada data part list produk
                         </td>
                       </tr>
@@ -405,10 +463,15 @@ export default function LaporanPartListProdukPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-semibold">{selectedProduk?.produk_name}</h3>
+                <h3 className="text-lg font-semibold">
+                  {selectedProduk?.produk_name}
+                </h3>
                 <p className="text-sm text-gray-600">
-                  User: {selectedProduk?.user_id} | 
-                  Tanggal: {selectedProduk && new Date(selectedProduk.created_at).toLocaleDateString('id-ID')}
+                  User: {selectedProduk?.user_id} | Tanggal:{" "}
+                  {selectedProduk &&
+                    new Date(selectedProduk.created_at).toLocaleDateString(
+                      "id-ID",
+                    )}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -418,7 +481,7 @@ export default function LaporanPartListProdukPage() {
                   className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   <Printer size={16} />
-                  {logoLoading ? 'Loading...' : 'Print'}
+                  {logoLoading ? "Loading..." : "Print"}
                 </button>
                 <button
                   onClick={() => setShowDetail(false)}
@@ -432,46 +495,97 @@ export default function LaporanPartListProdukPage() {
             <div id="print-content">
               <div className="header text-center mb-6">
                 <h1>LAPORAN PART LIST PRODUK</h1>
-                <p><strong>Nama Produk:</strong> {selectedProduk?.produk_name}</p>
-                <p><strong>User:</strong> {selectedProduk?.user_id}</p>
-                <p><strong>Tanggal:</strong> {selectedProduk && new Date(selectedProduk.created_at).toLocaleDateString('id-ID')}</p>
+                <p>
+                  <strong>Nama Produk:</strong> {selectedProduk?.produk_name}
+                </p>
+                <p>
+                  <strong>User:</strong> {selectedProduk?.user_id}
+                </p>
+                <p>
+                  <strong>Tanggal:</strong>{" "}
+                  {selectedProduk &&
+                    new Date(selectedProduk.created_at).toLocaleDateString(
+                      "id-ID",
+                    )}
+                </p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">No</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Code</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Nama Bahan</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Spesifikasi</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Keterangan</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">Pakai/1000</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">
+                        No
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">
+                        Code
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">
+                        Nama Bahan
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">
+                        Spesifikasi
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">
+                        Keterangan
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-r border-b border-gray-400">
+                        Pakai/1000
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedItems.length > 0 ? (
                       selectedItems.map((item, index) => {
-                        const currentBDOWN = item.BDOWN || '';
-                        const previousBDOWN = index > 0 ? (selectedItems[index - 1].BDOWN || '') : '';
-                        const shouldAddSpacing = index > 0 && currentBDOWN !== previousBDOWN;
+                        const currentBDOWN = item.BDOWN || "";
+                        const previousBDOWN =
+                          index > 0 ? selectedItems[index - 1].BDOWN || "" : "";
+                        const shouldAddSpacing =
+                          index > 0 && currentBDOWN !== previousBDOWN;
                         const isLastItem = index === selectedItems.length - 1;
-                        const spacingClass = shouldAddSpacing ? 'pt-8' : 'py-2';
-                        
+                        const spacingClass = shouldAddSpacing ? "pt-8" : "py-2";
+
                         return (
                           <tr key={item.id}>
-                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.item_no}</td>
-                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.code}</td>
-                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.nama_bahan}</td>
-                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.spesifikasi}</td>
-                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.keterangan}</td>
-                            <td className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? 'border-b' : ''}`}>{item.pakai_pc} {item.unit}</td>
+                            <td
+                              className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? "border-b" : ""}`}
+                            >
+                              {item.item_no}
+                            </td>
+                            <td
+                              className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? "border-b" : ""}`}
+                            >
+                              {item.code}
+                            </td>
+                            <td
+                              className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? "border-b" : ""}`}
+                            >
+                              {item.nama_bahan}
+                            </td>
+                            <td
+                              className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? "border-b" : ""}`}
+                            >
+                              {item.spesifikasi}
+                            </td>
+                            <td
+                              className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? "border-b" : ""}`}
+                            >
+                              {item.keterangan}
+                            </td>
+                            <td
+                              className={`px-3 ${spacingClass} border-l border-r border-gray-400 ${isLastItem ? "border-b" : ""}`}
+                            >
+                              {item.pakai_pc} {item.unit}
+                            </td>
                           </tr>
                         );
                       })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="px-3 py-8 text-center text-gray-500 border-l border-r border-b border-gray-400">
+                        <td
+                          colSpan={6}
+                          className="px-3 py-8 text-center text-gray-500 border-l border-r border-b border-gray-400"
+                        >
                           Tidak ada data bahan
                         </td>
                       </tr>

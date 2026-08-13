@@ -2,61 +2,86 @@
 
 import React, { useState, useEffect } from "react";
 import { getSession } from "@/lib/auth/login";
-import { Save, RotateCcw, Search, Download, Trash2, Plus, Minus, Loader2 } from "lucide-react";
+import {
+  Save,
+  RotateCcw,
+  Search,
+  Download,
+  Trash2,
+  Plus,
+  Minus,
+  Loader2,
+} from "lucide-react";
 import { LocalStorageService } from "@/lib/storage/localStorage";
-import { SkeletonLoading, TableSkeleton } from "@/components/ui/SkeletonLoading";
-import * as XLSX from 'xlsx';
+import {
+  SkeletonLoading,
+  TableSkeleton,
+} from "@/components/ui/SkeletonLoading";
+import * as XLSX from "xlsx";
 
 // Fungsi untuk download Excel
 const downloadExcel = (data: any[], filename: string) => {
   // Create worksheet data
   const headers = [
-    'No', 'Code', 'Nama Bahan', 'Spesifikasi', 'Keterangan', 'Pakai/PC', 'Unit',
-    'Rp.', 'US$', 'JPY', 'BM %', 'Freight', 'USD', 'Pembelian Terakhir', 'Keterangan'
+    "No",
+    "Code",
+    "Nama Bahan",
+    "Spesifikasi",
+    "Keterangan",
+    "Pakai/PC",
+    "Unit",
+    "Rp.",
+    "US$",
+    "JPY",
+    "BM %",
+    "Freight",
+    "USD",
+    "Pembelian Terakhir",
+    "Keterangan",
   ];
-  
+
   const worksheetData = [
     headers,
-    ...data.map(item => [
+    ...data.map((item) => [
       item.no,
-      item.code || '',
-      item.nama_bahan || '',
-      item.spesifikasi || '',
-      item.keterangan || '',
-      item.pakai_pc || '',
-      item.unit || '',
-      item.rp || '',
-      item.usd || '',
-      item.jpy || '',
-      item.bm_percent || '',
-      item.freight || '',
-      item.usd2 || '',
-      item.pembelian_terakhir || '',
-      item.keterangan2 || ''
-    ])
+      item.code || "",
+      item.nama_bahan || "",
+      item.spesifikasi || "",
+      item.keterangan || "",
+      item.pakai_pc || "",
+      item.unit || "",
+      item.rp || "",
+      item.usd || "",
+      item.jpy || "",
+      item.bm_percent || "",
+      item.freight || "",
+      item.usd2 || "",
+      item.pembelian_terakhir || "",
+      item.keterangan2 || "",
+    ]),
   ];
 
   // Create worksheet
   const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-  
+
   // Create workbook
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daftar Bahan");
-  
+
   // Generate Excel file
-  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  
+  const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
   // Create blob
-  const blob = new Blob([excelBuffer], { 
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  const blob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  
+
   // Download
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', `${filename}.xlsx`);
-  link.style.visibility = 'hidden';
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${filename}.xlsx`);
+  link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -131,7 +156,7 @@ export default function PartListProdukPage() {
   useEffect(() => {
     const sess = getSession();
     setUsername((sess as any)?.username || "");
-    
+
     // Check for existing draft (async)
     checkForDraft();
   }, []);
@@ -140,7 +165,7 @@ export default function PartListProdukPage() {
   const checkForDraft = () => {
     const sess = getSession();
     const userId = (sess as any)?.username;
-    
+
     if (userId) {
       const draft = LocalStorageService.loadDraft(userId);
       if (draft) {
@@ -157,11 +182,15 @@ export default function PartListProdukPage() {
       produkName,
       satuan,
       bahanItems,
-      lastSaved: new Date().toISOString()
+      lastSaved: new Date().toISOString(),
     };
-    
+
     // Only save if there's actual data
-    if (noprod || produkName || bahanItems.some(item => item.nama_bahan || item.code)) {
+    if (
+      noprod ||
+      produkName ||
+      bahanItems.some((item) => item.nama_bahan || item.code)
+    ) {
       LocalStorageService.autoSave(draftData, username);
       setHasDraft(true);
     }
@@ -233,7 +262,7 @@ export default function PartListProdukPage() {
   const handleNoprodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setNoprod(value);
-    
+
     // Search when typing
     if (value.length >= 3) {
       searchPartlist(value);
@@ -246,10 +275,10 @@ export default function PartListProdukPage() {
   const searchPartlist = async (keyword: string) => {
     setIsSearching(true);
     try {
-      const response = await fetch('/api/produk/search', {
-        method: 'GET',
+      const response = await fetch("/api/produk/search", {
+        method: "GET",
         headers: {
-          'x-keyword': keyword
+          "x-keyword": keyword,
         },
       });
 
@@ -262,7 +291,7 @@ export default function PartListProdukPage() {
         setShowDropdown(false);
       }
     } catch (error) {
-      console.error('Error searching partlist:', error);
+      console.error("Error searching partlist:", error);
       setSearchResults([]);
       setShowDropdown(false);
     } finally {
@@ -271,8 +300,8 @@ export default function PartListProdukPage() {
   };
 
   const handleSelectPartlistItem = (item: any) => {
-    setNoprod(item.NOPROD || '');
-    setProdukName(item.PRODUK || '');
+    setNoprod(item.NOPROD || "");
+    setProdukName(item.PRODUK || "");
     setShowDropdown(false);
     setSearchResults([]);
   };
@@ -283,15 +312,15 @@ export default function PartListProdukPage() {
 
   const handleBahanItemBlur = (id: number, field: string, value: string) => {
     // Only process pakai_pc field on blur
-    if (field === 'pakai_pc' && value) {
+    if (field === "pakai_pc" && value) {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         const dividedValue = numValue / 1000;
         let processedValue;
-        
+
         // Always format with 3 decimal places for consistency
-        processedValue = dividedValue.toFixed(3).replace('.', ',');
-        
+        processedValue = dividedValue.toFixed(3).replace(".", ",");
+
         // Update with processed value
         setBahanItems((prev) =>
           prev.map((item) =>
@@ -300,8 +329,8 @@ export default function PartListProdukPage() {
                   ...item,
                   [field]: processedValue,
                 }
-              : item
-          )
+              : item,
+          ),
         );
       }
     }
@@ -315,14 +344,14 @@ export default function PartListProdukPage() {
               ...item,
               [field]: value,
             }
-          : item
-      )
+          : item,
+      ),
     );
 
     // Auto-fill when typing in code field and exact match found
-    if (field === 'code' && value.length >= 3) {
+    if (field === "code" && value.length >= 3) {
       searchAndAutoFill(id, value);
-    } else if (field === 'code' && value.length === 0) {
+    } else if (field === "code" && value.length === 0) {
       // Clear all related fields when code is cleared
       setBahanItems((prev) =>
         prev.map((item) =>
@@ -330,60 +359,62 @@ export default function PartListProdukPage() {
             ? {
                 ...item,
                 code: value,
-                nama_bahan: '',
-                spesifikasi: '',
-                keterangan: '',
-                unit: '',
-                pakai_pc: '',
+                nama_bahan: "",
+                spesifikasi: "",
+                keterangan: "",
+                unit: "",
+                pakai_pc: "",
               }
-            : item
-        )
+            : item,
+        ),
       );
     }
   };
 
   // Search and auto-fill if exact match found
   const searchAndAutoFill = async (itemId: number, keyword: string) => {
-    console.log('Auto-filling for keyword:', keyword);
-    
+    console.log("Auto-filling for keyword:", keyword);
+
     try {
-      const response = await fetch('/api/part-list-produk/search', {
-        method: 'GET',
+      const response = await fetch("/api/part-list-produk/search", {
+        method: "GET",
         headers: {
-          'x-keyword': keyword
-        }
+          "x-keyword": keyword,
+        },
       });
-      
+
       if (response.ok) {
         const results = await response.json();
-        console.log('Search results:', results);
-        
+        console.log("Search results:", results);
+
         // Find exact match
-        const exactMatch = results.find((bahan: BahanSearchResult) => 
-          bahan.kode_lama === keyword || 
-          bahan.kode_lama?.toLowerCase() === keyword.toLowerCase()
+        const exactMatch = results.find(
+          (bahan: BahanSearchResult) =>
+            bahan.kode_lama === keyword ||
+            bahan.kode_lama?.toLowerCase() === keyword.toLowerCase(),
         );
-        
+
         if (exactMatch) {
-          console.log('Exact match found:', exactMatch);
+          console.log("Exact match found:", exactMatch);
           setBahanItems((prev) =>
             prev.map((item) =>
               item.id === itemId
                 ? {
                     ...item,
-                    code: exactMatch.kode_lama || exactMatch.code || '',
-                    nama_bahan: exactMatch.nama_bahan || exactMatch.namabahan || '',
-                    spesifikasi: exactMatch.spesifikasi || '',
-                    unit: exactMatch.unit || '',
-                    pakai_pc: exactMatch.pakaiperpcs || '',
+                    code: exactMatch.kode_lama || exactMatch.code || "",
+                    nama_bahan:
+                      exactMatch.nama_bahan || exactMatch.namabahan || "",
+                    spesifikasi: exactMatch.spesifikasi || "",
+                    unit: exactMatch.unit || "",
+                    pakai_pc: exactMatch.pakaiperpcs || "",
                   }
-                : item
-            )
+                : item,
+            ),
           );
         }
       }
     } catch (error) {
-      console.error('Error auto-filling:', error);
+      console.error("Error auto-filling:", error);
     }
   };
 
@@ -433,7 +464,7 @@ export default function PartListProdukPage() {
     }
 
     const hasValidBahan = bahanItems.some(
-      (item) => item.nama_bahan.trim() !== ""
+      (item) => item.nama_bahan.trim() !== "",
     );
 
     if (!hasValidBahan) {
@@ -444,29 +475,41 @@ export default function PartListProdukPage() {
     setIsLoading(true);
     try {
       // Save to API
-      const response = await fetch('/api/part-list-produk/create', {
-        method: 'POST',
+      const response = await fetch("/api/part-list-produk/create", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           noprod: noprod,
           produk_name: produkName,
           satuan: satuan,
-          bahan_items: bahanItems.filter(item => item.nama_bahan.trim() !== ""),
+          bahan_items: bahanItems.filter(
+            (item) => item.nama_bahan.trim() !== "",
+          ),
           user_id: username,
         }),
       });
 
       if (response.ok) {
+        const resJson = await response.json();
         setShowSuccessMessage(true);
         setTimeout(() => setShowSuccessMessage(false), 3000);
-        
+
         // Clear draft after successful save
         clearDraftAfterSave();
-        
+
         // Reset form without redirect
         handleReset();
+
+        // Dispatch a custom event so other open pages (laporan) can refresh
+        try {
+          window.dispatchEvent(
+            new CustomEvent("partListSaved", { detail: resJson?.data }),
+          );
+        } catch (e) {
+          // ignore in non-browser environments
+        }
       } else {
         alert("Gagal menyimpan data!");
       }
@@ -528,35 +571,38 @@ export default function PartListProdukPage() {
       {/* Form Content */}
       <div className="flex-1 p-5 overflow-auto">
         {/* Draft Restore Notification */}
-      {showDraftRestore && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4 mx-5">
-          <div className="flex justify-between items-center">
-            <div>
-              <span className="font-medium">Draft tersimpan!</span> 
-              <span className="ml-2">Apakah ingin melanjutkan data yang tersimpan?</span>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={restoreDraft}
-                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm"
-              >
-                Lanjutkan
-              </button>
-              <button
-                onClick={clearDraft}
-                className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm"
-              >
-                Buang
-              </button>
+        {showDraftRestore && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4 mx-5">
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="font-medium">Draft tersimpan!</span>
+                <span className="ml-2">
+                  Apakah ingin melanjutkan data yang tersimpan?
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={restoreDraft}
+                  className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm"
+                >
+                  Lanjutkan
+                </button>
+                <button
+                  onClick={clearDraft}
+                  className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm"
+                >
+                  Buang
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Success Message */}
+        {/* Success Message */}
         {showSuccessMessage && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 mx-5">
-            <span className="font-medium">Berhasil!</span> Data Part List Produk berhasil disimpan.
+            <span className="font-medium">Berhasil!</span> Data Part List Produk
+            berhasil disimpan.
           </div>
         )}
         {/* Produk Name */}
@@ -575,7 +621,7 @@ export default function PartListProdukPage() {
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="Cari NOPROD dari tabel partlist..."
                 />
-                
+
                 {/* Dropdown Search Results */}
                 {showDropdown && searchResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded mt-1 shadow-lg z-10 max-h-60 overflow-y-auto">
@@ -585,15 +631,18 @@ export default function PartListProdukPage() {
                         className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                         onClick={() => handleSelectPartlistItem(item)}
                       >
-                        <div className="text-sm font-medium">{item.NOPROD || '-'}</div>
+                        <div className="text-sm font-medium">
+                          {item.NOPROD || "-"}
+                        </div>
                         <div className="text-xs text-gray-500">
-                          {item.PRODUK || '-'} | {item.RATED || '-'} | {item.NO_PART || '-'}
+                          {item.PRODUK || "-"} | {item.RATED || "-"} |{" "}
+                          {item.NO_PART || "-"}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-                
+
                 {/* Loading indicator */}
                 {isSearching && (
                   <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded mt-1 shadow-lg z-10 px-3 py-2">
@@ -635,7 +684,12 @@ export default function PartListProdukPage() {
             <h3 className="text-lg font-semibold">Daftar Bahan</h3>
             <div className="flex gap-2">
               <button
-                onClick={() => downloadExcel(bahanItems, `Daftar_Bahan_${produkName || 'Produk'}_${new Date().toISOString().split('T')[0]}`)}
+                onClick={() =>
+                  downloadExcel(
+                    bahanItems,
+                    `Daftar_Bahan_${produkName || "Produk"}_${new Date().toISOString().split("T")[0]}`,
+                  )
+                }
                 className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium flex items-center gap-2"
                 title="Download Excel"
               >
@@ -656,22 +710,54 @@ export default function PartListProdukPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 w-12">No</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Code</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[200px]">Nama Bahan</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[200px]">Spesifikasi</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Keterangan</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Pakai/PC</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">Unit</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Rp.</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">US$</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">JPY</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">BM %</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">Freight</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">USD</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">Pembelian Terakhir</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">Keterangan</th>
-                  <th className="px-3 py-2 text-center font-semibold text-gray-700 w-20">Aksi</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 w-12">
+                    No
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">
+                    Code
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[200px]">
+                    Nama Bahan
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[200px]">
+                    Spesifikasi
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">
+                    Keterangan
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">
+                    Pakai/PC
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">
+                    Unit
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">
+                    Rp.
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">
+                    US$
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">
+                    JPY
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[80px]">
+                    BM %
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">
+                    Freight
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px]">
+                    USD
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[120px]">
+                    Pembelian Terakhir
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 min-w-[150px]">
+                    Keterangan
+                  </th>
+                  <th className="px-3 py-2 text-center font-semibold text-gray-700 w-20">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -689,7 +775,9 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.code}
-                        onChange={(e) => handleBahanItemChange(item.id, "code", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(item.id, "code", e.target.value)
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Ketik kode bahan..."
                       />
@@ -698,7 +786,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.nama_bahan}
-                        onChange={(e) => handleBahanItemChange(item.id, "nama_bahan", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "nama_bahan",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Nama bahan"
                       />
@@ -707,7 +801,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.spesifikasi}
-                        onChange={(e) => handleBahanItemChange(item.id, "spesifikasi", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "spesifikasi",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Spesifikasi"
                       />
@@ -716,7 +816,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.keterangan}
-                        onChange={(e) => handleBahanItemChange(item.id, "keterangan", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "keterangan",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Keterangan"
                       />
@@ -725,8 +831,20 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.pakai_pc}
-                        onChange={(e) => handleBahanItemChange(item.id, "pakai_pc", e.target.value)}
-                        onBlur={(e) => handleBahanItemBlur(item.id, "pakai_pc", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "pakai_pc",
+                            e.target.value,
+                          )
+                        }
+                        onBlur={(e) =>
+                          handleBahanItemBlur(
+                            item.id,
+                            "pakai_pc",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Jumlah"
                       />
@@ -735,7 +853,9 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.unit}
-                        onChange={(e) => handleBahanItemChange(item.id, "unit", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(item.id, "unit", e.target.value)
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Unit"
                       />
@@ -744,7 +864,9 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.rp}
-                        onChange={(e) => handleBahanItemChange(item.id, "rp", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(item.id, "rp", e.target.value)
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Rp."
                       />
@@ -753,7 +875,9 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.usd}
-                        onChange={(e) => handleBahanItemChange(item.id, "usd", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(item.id, "usd", e.target.value)
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="US$"
                       />
@@ -762,7 +886,9 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.jpy}
-                        onChange={(e) => handleBahanItemChange(item.id, "jpy", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(item.id, "jpy", e.target.value)
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="JPY"
                       />
@@ -771,7 +897,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.bm_percent}
-                        onChange={(e) => handleBahanItemChange(item.id, "bm_percent", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "bm_percent",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="BM %"
                       />
@@ -780,7 +912,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.freight}
-                        onChange={(e) => handleBahanItemChange(item.id, "freight", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "freight",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Freight"
                       />
@@ -789,7 +927,9 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.usd2}
-                        onChange={(e) => handleBahanItemChange(item.id, "usd2", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(item.id, "usd2", e.target.value)
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="USD"
                       />
@@ -798,7 +938,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.pembelian_terakhir}
-                        onChange={(e) => handleBahanItemChange(item.id, "pembelian_terakhir", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "pembelian_terakhir",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Pembelian Terakhir"
                       />
@@ -807,7 +953,13 @@ export default function PartListProdukPage() {
                       <input
                         type="text"
                         value={item.keterangan2}
-                        onChange={(e) => handleBahanItemChange(item.id, "keterangan2", e.target.value)}
+                        onChange={(e) =>
+                          handleBahanItemChange(
+                            item.id,
+                            "keterangan2",
+                            e.target.value,
+                          )
+                        }
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Keterangan"
                       />
