@@ -92,7 +92,9 @@ export default function LaporanPartListProdukPage() {
   const fetchPartListData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/part-list-produk/list");
+      const response = await fetch("/api/part-list-produk/list", {
+        cache: "no-store",
+      });
       if (response.ok) {
         const data = await response.json();
         setPartListData(data);
@@ -107,7 +109,9 @@ export default function LaporanPartListProdukPage() {
   const fetchPartListDetail = async (produkId: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/part-list-produk/detail/${produkId}`);
+      const response = await fetch(`/api/part-list-produk/detail/${produkId}`, {
+        cache: "no-store",
+      });
       if (response.ok) {
         const data = await response.json();
         setSelectedItems(data.items);

@@ -85,7 +85,7 @@ export default function ProdukPage() {
   const loadAllProducts = async () => {
     setIsDataLoading(true);
     try {
-      const response = await fetch("/api/produk/all");
+      const response = await fetch("/api/produk/all", { cache: "no-store" });
       if (response.ok) {
         const result = await response.json();
         setDataList(result.data || result); // Handle both old and new format
@@ -104,7 +104,9 @@ export default function ProdukPage() {
 
     setLoadingMaterials((prev) => new Set(prev).add(noprod));
     try {
-      const response = await fetch(`/api/produk/materials/${noprod}`);
+      const response = await fetch(`/api/produk/materials/${noprod}`, {
+        cache: "no-store",
+      });
       if (response.ok) {
         const materials = await response.json();
         setProductMaterials((prev) => ({
