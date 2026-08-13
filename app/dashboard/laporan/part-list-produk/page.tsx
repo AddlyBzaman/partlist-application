@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Notification from "@/components/ui/Notification";
 import { getSession } from "@/lib/auth/login";
 import { Search, Download, Printer, Eye, Trash2 } from "lucide-react";
 
@@ -57,10 +58,17 @@ export default function LaporanPartListProdukPage() {
     return () =>
       window.removeEventListener("partListSaved", handler as EventListener);
   }, []);
-  
-    // Notification state
-    const [notif, setNotif] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" | "warning" }>({ show: false, message: "", type: "info" });
-    const showNotif = (message: string, type: "success" | "error" | "info" | "warning" = "info") => setNotif({ show: true, message, type });
+
+  // Notification state
+  const [notif, setNotif] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+  }>({ show: false, message: "", type: "info" });
+  const showNotif = (
+    message: string,
+    type: "success" | "error" | "info" | "warning" = "info",
+  ) => setNotif({ show: true, message, type });
 
   const convertLogoToBase64 = async () => {
     setLogoLoading(true);
@@ -150,7 +158,10 @@ export default function LaporanPartListProdukPage() {
 
     // Check if logo is loaded
     if (logoLoading || !logoBase64) {
-      showNotif("Logo sedang dimuat, silakan coba lagi beberapa saat...", "info");
+      showNotif(
+        "Logo sedang dimuat, silakan coba lagi beberapa saat...",
+        "info",
+      );
       return;
     }
 
