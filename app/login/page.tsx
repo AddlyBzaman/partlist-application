@@ -62,16 +62,25 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-800 flex items-center justify-center p-4"
+      className="min-h-screen flex items-center justify-center p-4"
       onKeyPress={handleKeyPress}
+      style={{
+        backgroundImage: "url('/bg.webp')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
     >
-      {/* UI TETAP SAMA */}
-      <div className="absolute inset-0 opacity-10">
+      {/* Dark overlay + subtle pattern for readability */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      >
         <div
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
+              "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0)",
             backgroundSize: "40px 40px",
           }}
         ></div>
