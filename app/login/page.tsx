@@ -80,10 +80,16 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-gray-700 to-gray-600 px-8 py-10 text-center">
-            <div className="w-20 h-20 bg-red-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <div className="w-12 h-12 border-4 border-white rounded-lg"></div>
+            <div className="mx-auto mb-4 w-20 h-20">
+              <img
+                src="/logo.png"
+                alt="Logo Nikkatsu"
+                className="w-20 h-20 object-contain mx-auto"
+              />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Partlist Application</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              Partlist Application
+            </h1>
             <p className="text-sm text-gray-300">PT. Nikkatsu Electric Works</p>
           </div>
 
@@ -102,7 +108,10 @@ export default function LoginPage() {
                   Username
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 text-gray-400" size={20} />
+                  <User
+                    className="absolute left-3 top-3 text-gray-400"
+                    size={20}
+                  />
                   <input
                     type="text"
                     className="w-full pl-10 pr-4 py-3 border rounded-lg"
@@ -119,7 +128,10 @@ export default function LoginPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
+                  <Lock
+                    className="absolute left-3 top-3 text-gray-400"
+                    size={20}
+                  />
                   <input
                     type={showPassword ? "text" : "password"}
                     className="w-full pl-10 pr-12 py-3 border rounded-lg"
