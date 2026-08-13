@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 
-interface NotificationProps {
+interface ToastProps {
   show: boolean;
   message: string;
   type?: "success" | "error" | "info" | "warning";
@@ -10,13 +10,13 @@ interface NotificationProps {
   onClose?: () => void;
 }
 
-export default function Notification({
+export default function Toast({
   show,
   message,
   type = "info",
   duration = 4000,
   onClose,
-}: NotificationProps) {
+}: ToastProps) {
   useEffect(() => {
     if (!show) return;
     const t = setTimeout(() => onClose && onClose(), duration);

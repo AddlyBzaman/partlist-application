@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,13 +15,15 @@ export async function GET(request: NextRequest) {
       FROM partlist_produk 
       ORDER BY created_at DESC
     `);
-    
-    return NextResponse.json(rows);
+
+    return NextResponse.json(rows, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
-    console.error('Error fetching part list produk:', error);
+    console.error("Error fetching part list produk:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

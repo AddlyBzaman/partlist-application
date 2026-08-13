@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
-import Notification from "@/components/ui/Notification";
+import Toast from "@/components/ui/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,8 +11,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [notif, setNotif] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" | "warning" }>({ show: false, message: "", type: "info" });
-  const showNotif = (message: string, type: "success" | "error" | "info" | "warning" = "info") => setNotif({ show: true, message, type });
+  const [notif, setNotif] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+  }>({ show: false, message: "", type: "info" });
+  const showNotif = (
+    message: string,
+    type: "success" | "error" | "info" | "warning" = "info",
+  ) => setNotif({ show: true, message, type });
 
   useEffect(() => {
     if (sessionStorage.getItem("isLoggedIn") === "true") {
@@ -90,7 +97,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md">
-        <Notification
+        <Toast
           show={notif.show}
           message={notif.message}
           type={notif.type}

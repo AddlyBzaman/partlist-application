@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Notification from "@/components/ui/Notification";
+import Toast from "@/components/ui/Toast";
 import { getSession } from "@/lib/auth/login";
 import { bahanService } from "@/lib/services/bahanService";
 import { Save, RotateCcw, Search, Download, Trash2 } from "lucide-react";
@@ -25,16 +25,23 @@ export default function BahanPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [dataList, setDataList] = useState<any[]>([]);
-  const [notif, setNotif] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" | "warning" }>({ show: false, message: "", type: "info" });
+  const [notif, setNotif] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+  }>({ show: false, message: "", type: "info" });
 
-  const showNotif = (message: string, type: "success" | "error" | "info" | "warning" = "info") => {
+  const showNotif = (
+    message: string,
+    type: "success" | "error" | "info" | "warning" = "info",
+  ) => {
     setNotif({ show: true, message, type });
   };
 
   useEffect(() => {
     const sess = getSession();
     setUsername((sess as any)?.username || "");
-    
+
     // Load existing data
     loadData();
   }, []);
@@ -49,7 +56,7 @@ export default function BahanPage() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -68,11 +75,11 @@ export default function BahanPage() {
     try {
       // Save using bahanService
       await bahanService.create(formData, username || "admin");
-      
+
       // Reload data
       const updatedData = await bahanService.getAll();
       setDataList(updatedData);
-      
+
       showNotif("Data berhasil disimpan!", "success");
       handleReset();
     } catch (error) {
@@ -123,11 +130,10 @@ export default function BahanPage() {
   };
 
   // Render notification toast
-  
 
   return (
     <div className="h-full flex flex-col">
-      <Notification
+      <Toast
         show={notif.show}
         message={notif.message}
         type={notif.type}
@@ -147,9 +153,7 @@ export default function BahanPage() {
             {/* Left Column */}
             <div className="space-y-4">
               <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">
-                  1. Kode Bahan
-                </label>
+                <label className="text-sm text-gray-700">1. Kode Bahan</label>
                 <input
                   type="text"
                   name="code_lama"
@@ -174,9 +178,7 @@ export default function BahanPage() {
               </div>
 
               <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">
-                  3. Spesifikasi
-                </label>
+                <label className="text-sm text-gray-700">3. Spesifikasi</label>
                 <input
                   type="text"
                   name="spesifikasi_bahan"
@@ -187,9 +189,7 @@ export default function BahanPage() {
               </div>
 
               <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">
-                  4. Unit
-                </label>
+                <label className="text-sm text-gray-700">4. Unit</label>
                 <input
                   type="text"
                   name="ukuran_unit"
@@ -200,9 +200,7 @@ export default function BahanPage() {
               </div>
 
               <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">
-                  5. Rumus
-                </label>
+                <label className="text-sm text-gray-700">5. Rumus</label>
                 <input
                   type="text"
                   name="rumus"
@@ -213,9 +211,7 @@ export default function BahanPage() {
               </div>
 
               <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                <label className="text-sm text-gray-700">
-                  6. Kode Baru
-                </label>
+                <label className="text-sm text-gray-700">6. Kode Baru</label>
                 <input
                   type="text"
                   name="code_baru"
@@ -305,12 +301,24 @@ export default function BahanPage() {
               <table className="w-full text-xs">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Kode</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Nama Bahan</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Spesifikasi</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Unit</th>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700">User</th>
-                    <th className="px-3 py-2 text-center font-semibold text-gray-700">Aksi</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                      Kode
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                      Nama Bahan
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                      Spesifikasi
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                      Unit
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                      User
+                    </th>
+                    <th className="px-3 py-2 text-center font-semibold text-gray-700">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

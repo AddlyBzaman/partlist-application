@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Notification from "@/components/ui/Notification";
+import Toast from "@/components/ui/Toast";
 import { getSession } from "@/lib/auth/login";
 import {
   Save,
@@ -562,7 +562,7 @@ export default function PartListProdukPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <Notification
+      <Toast
         show={notif.show}
         message={notif.message}
         type={notif.type}
