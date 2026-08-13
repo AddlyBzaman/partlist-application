@@ -136,7 +136,6 @@ export default function ClientPage() {
     ) {
       return;
     }
-
     try {
       const response = await fetch(
         `/api/part-list-produk/delete/${produk.id}`,
@@ -146,8 +145,43 @@ export default function ClientPage() {
       );
 
       if (response.ok) {
-        showNotif("Part List Produk berhasil dihapus!", "success");
-        fetchPartListData();
+        // Poll the list API a few times to ensure server-side revalidation/DB propagation
+        const maxRetries = 5;
+        const intervalMs = 600;
+        let removed = false;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          // wait a short delay before first check
+          await new Promise((res) =>
+            setTimeout(res, attempt === 0 ? 300 : intervalMs),
+          );
+
+          try {
+            const listRes = await fetch("/api/part-list-produk/list", {
+              cache: "no-store",
+            });
+            if (listRes.ok) {
+              const arr = await listRes.json();
+              setPartListData(arr);
+              if (!arr.some((p: any) => p.id === produk.id)) {
+                removed = true;
+                break;
+              }
+            }
+          } catch (err) {
+            console.error("Error polling part list after delete:", err);
+          }
+        }
+
+        if (removed) {
+          showNotif("Part List Produk berhasil dihapus!", "success");
+        } else {
+          // Last resort: force reload to ensure UI shows latest server state
+          console.warn(
+            "Delete confirmed but item still present in list after retries; forcing reload.",
+          );
+          window.location.reload();
+        }
       } else {
         showNotif("Gagal menghapus data!", "error");
       }
