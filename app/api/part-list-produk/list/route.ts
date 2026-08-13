@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
       ORDER BY created_at DESC
     `);
 
+    console.log(
+      "[DEBUG][partlist_list] rows=",
+      Array.isArray(rows) ? rows.length : 0,
+      "DB_HOST=",
+      process.env.DB_HOST || "unknown",
+    );
     return NextResponse.json(rows, {
       headers: { "Cache-Control": "no-store" },
     });

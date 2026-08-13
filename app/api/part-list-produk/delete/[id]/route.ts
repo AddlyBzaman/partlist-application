@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 
 export async function DELETE(
@@ -35,6 +36,16 @@ export async function DELETE(
         delProdukAffected: delProdukResult?.affectedRows ?? null,
         DB_HOST: process.env.DB_HOST || "unknown",
       });
+
+      try {
+        // Revalidate laporan page so CDN/static cache updates on demand
+        revalidatePath("/dashboard/laporan/part-list-produk");
+        console.log(
+          "[DEBUG] revalidated path /dashboard/laporan/part-list-produk",
+        );
+      } catch (err) {
+        console.error("[DEBUG] revalidatePath failed:", err);
+      }
 
       return NextResponse.json(
         { message: "Part List Produk berhasil dihapus" },
