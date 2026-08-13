@@ -145,6 +145,9 @@ export default function ClientPage() {
       );
 
       if (response.ok) {
+        // Optimistic UI update: remove item immediately
+        setPartListData((prev) => prev.filter((p) => p.id !== produk.id));
+
         // Poll the list API a few times to ensure server-side revalidation/DB propagation
         const maxRetries = 5;
         const intervalMs = 600;

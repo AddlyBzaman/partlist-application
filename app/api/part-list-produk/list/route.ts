@@ -4,20 +4,16 @@ import { db } from "@/lib/db";
 export async function GET(request: NextRequest) {
   try {
     const [rows] = await db.query(`
-      SELECT
-        p.id,
-        p.noprod,
-        p.produk_name,
-        p.satuan,
-        p.user_id,
-        p.created_at,
-        p.updated_at,
-        COUNT(pi.id) AS item_count
-      FROM partlist_produk p
-      LEFT JOIN partlist_produk_items pi ON pi.produk_id = p.id
-      GROUP BY p.id, p.noprod, p.produk_name, p.satuan, p.user_id, p.created_at, p.updated_at
-      HAVING item_count > 0
-      ORDER BY p.created_at DESC
+      SELECT 
+        id,
+        noprod,
+        produk_name,
+        satuan,
+        user_id,
+        created_at,
+        updated_at
+      FROM partlist_produk 
+      ORDER BY created_at DESC
     `);
 
     console.log(
