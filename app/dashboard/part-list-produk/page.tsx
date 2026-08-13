@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Notification from "@/components/ui/Notification";
 import { getSession } from "@/lib/auth/login";
 import {
   Save,
@@ -152,6 +153,16 @@ export default function PartListProdukPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  // Notification state for consistent toasts
+  const [notif, setNotif] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+  }>({ show: false, message: "", type: "info" });
+  const showNotif = (
+    message: string,
+    type: "success" | "error" | "info" | "warning" = "info",
+  ) => setNotif({ show: true, message, type });
 
   useEffect(() => {
     const sess = getSession();
@@ -459,7 +470,7 @@ export default function PartListProdukPage() {
 
   const handleSave = async () => {
     if (!noprod.trim() || !produkName.trim() || !satuan.trim()) {
-      alert("NOPROD, PRODUK, dan SATUAN wajib diisi!");
+      showNotif("NOPROD, PRODUK, dan SATUAN wajib diisi!", "error");
       return;
     }
 
@@ -468,7 +479,7 @@ export default function PartListProdukPage() {
     );
 
     if (!hasValidBahan) {
-      alert("Minimal harus ada satu bahan yang diisi!");
+      showNotif("Minimal harus ada satu bahan yang diisi!", "error");
       return;
     }
 
@@ -511,11 +522,11 @@ export default function PartListProdukPage() {
           // ignore in non-browser environments
         }
       } else {
-        alert("Gagal menyimpan data!");
+        showNotif("Gagal menyimpan data!", "error");
       }
     } catch (error) {
       console.error("Error saving data:", error);
-      alert("Gagal menyimpan data!");
+      showNotif("Gagal menyimpan data!", "error");
     } finally {
       setIsLoading(false);
     }
@@ -551,6 +562,13 @@ export default function PartListProdukPage() {
 
   return (
     <div className="h-full flex flex-col">
+      <Notification
+        show={notif.show}
+        message={notif.message}
+        type={notif.type}
+        onClose={() => setNotif({ show: false, message: "", type: "info" })}
+      />
+
       {/* Tab Header */}
       <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
         <div className="flex justify-between items-center">

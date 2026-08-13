@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Notification from "@/components/ui/Notification";
 import { getSession } from "@/lib/auth/login";
 import { bahanService } from "@/lib/services/bahanService";
 import { Save, RotateCcw, Search, Download, Trash2 } from "lucide-react";
@@ -24,6 +25,11 @@ export default function BahanPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [dataList, setDataList] = useState<any[]>([]);
+  const [notif, setNotif] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" | "warning" }>({ show: false, message: "", type: "info" });
+
+  const showNotif = (message: string, type: "success" | "error" | "info" | "warning" = "info") => {
+    setNotif({ show: true, message, type });
+  };
 
   useEffect(() => {
     const sess = getSession();
@@ -54,7 +60,7 @@ export default function BahanPage() {
 
   const handleSave = async () => {
     if (!formData.nama_bahan) {
-      alert("Nama Bahan wajib diisi!");
+      showNotif("Nama Bahan wajib diisi!", "error");
       return;
     }
 
@@ -67,11 +73,11 @@ export default function BahanPage() {
       const updatedData = await bahanService.getAll();
       setDataList(updatedData);
       
-      alert("Data berhasil disimpan!");
+      showNotif("Data berhasil disimpan!", "success");
       handleReset();
     } catch (error) {
       console.error("Error saving data:", error);
-      alert("Gagal menyimpan data!");
+      showNotif("Gagal menyimpan data!", "error");
     } finally {
       setIsLoading(false);
     }
@@ -100,24 +106,33 @@ export default function BahanPage() {
         await bahanService.deleteById(id);
         const updatedData = await bahanService.getAll();
         setDataList(updatedData);
-        alert("Data berhasil dihapus!");
+        showNotif("Data berhasil dihapus!", "success");
       } catch (error) {
         console.error("Error deleting data:", error);
-        alert("Gagal menghapus data!");
+        showNotif("Gagal menghapus data!", "error");
       }
     }
   };
 
   const exportToExcel = () => {
     if (dataList.length === 0) {
-      alert("Tidak ada data untuk diekspor!");
+      showNotif("Tidak ada data untuk diekspor!", "info");
       return;
     }
-    alert("Export Excel functionality akan ditambahkan nanti");
+    showNotif("Export Excel functionality akan ditambahkan nanti", "info");
   };
+
+  // Render notification toast
+  
 
   return (
     <div className="h-full flex flex-col">
+      <Notification
+        show={notif.show}
+        message={notif.message}
+        type={notif.type}
+        onClose={() => setNotif({ show: false, message: "", type: "info" })}
+      />
       {/* Tab Header */}
       <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
         <span className="inline-block text-sm font-medium bg-white px-4 py-1 rounded-t border border-b-0 border-gray-300 shadow-sm">

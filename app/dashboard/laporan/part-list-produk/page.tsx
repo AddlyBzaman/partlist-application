@@ -57,6 +57,10 @@ export default function LaporanPartListProdukPage() {
     return () =>
       window.removeEventListener("partListSaved", handler as EventListener);
   }, []);
+  
+    // Notification state
+    const [notif, setNotif] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" | "warning" }>({ show: false, message: "", type: "info" });
+    const showNotif = (message: string, type: "success" | "error" | "info" | "warning" = "info") => setNotif({ show: true, message, type });
 
   const convertLogoToBase64 = async () => {
     setLogoLoading(true);
@@ -130,14 +134,14 @@ export default function LaporanPartListProdukPage() {
       );
 
       if (response.ok) {
-        alert("Part List Produk berhasil dihapus!");
+        showNotif("Part List Produk berhasil dihapus!", "success");
         fetchPartListData();
       } else {
-        alert("Gagal menghapus data!");
+        showNotif("Gagal menghapus data!", "error");
       }
     } catch (error) {
       console.error("Error deleting part list:", error);
-      alert("Gagal menghapus data!");
+      showNotif("Gagal menghapus data!", "error");
     }
   };
 
@@ -146,7 +150,7 @@ export default function LaporanPartListProdukPage() {
 
     // Check if logo is loaded
     if (logoLoading || !logoBase64) {
-      alert("Logo sedang dimuat, silakan coba lagi beberapa saat...");
+      showNotif("Logo sedang dimuat, silakan coba lagi beberapa saat...", "info");
       return;
     }
 
@@ -344,6 +348,12 @@ export default function LaporanPartListProdukPage() {
 
   return (
     <div className="h-full flex flex-col">
+      <Notification
+        show={notif.show}
+        message={notif.message}
+        type={notif.type}
+        onClose={() => setNotif({ show: false, message: "", type: "info" })}
+      />
       {/* Tab Header */}
       <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
         <span className="inline-block text-sm font-medium bg-white px-4 py-1 rounded-t border border-b-0 border-gray-300 shadow-sm">

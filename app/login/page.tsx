@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
+import Notification from "@/components/ui/Notification";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [notif, setNotif] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" | "warning" }>({ show: false, message: "", type: "info" });
+  const showNotif = (message: string, type: "success" | "error" | "info" | "warning" = "info") => setNotif({ show: true, message, type });
 
   useEffect(() => {
     if (sessionStorage.getItem("isLoggedIn") === "true") {
@@ -19,7 +22,7 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      alert("Username dan Password harus diisi!");
+      showNotif("Username dan Password harus diisi!", "error");
       return;
     }
 
@@ -37,7 +40,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        alert(data.error || "Username atau Password salah!");
+        showNotif(data.error || "Username atau Password salah!", "error");
         setIsLoading(false);
         return;
       }
@@ -51,7 +54,7 @@ export default function LoginPage() {
       router.push("/dashboard/produk");
     } catch (error) {
       console.error("Login error:", error);
-      alert("Terjadi kesalahan. Silakan coba lagi.");
+      showNotif("Terjadi kesalahan. Silakan coba lagi.", "error");
       setIsLoading(false);
     }
   };
@@ -87,6 +90,12 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md">
+        <Notification
+          show={notif.show}
+          message={notif.message}
+          type={notif.type}
+          onClose={() => setNotif({ show: false, message: "", type: "info" })}
+        />
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-gray-700 to-gray-600 px-8 py-10 text-center">
             <div className="mx-auto mb-4 w-20 h-20">
